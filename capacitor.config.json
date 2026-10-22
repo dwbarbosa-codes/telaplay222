@@ -1,0 +1,17 @@
+{
+  "appId": "com.playeriptv.app",
+  "appName": "TelaPlay",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "http",
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  }
+}

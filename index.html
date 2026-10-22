@@ -1,0 +1,1766 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TelaPlay</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#070a1e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="TelaPlay">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon-192.png">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.13/hls.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mpegts.js@1.7.3/dist/mpegts.js"></script>
+<style>
+:root{--bg:#070a1e;--panel:#0b1030;--line:#1c2350;--text:#eef1ff;--muted:#8d97c4;--accent:#5b6cf0}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--text);font:calc(15px*var(--fs,1))/1.4 "Segoe UI",system-ui,sans-serif;overflow:hidden}
+button,input,select{font:inherit;color:inherit}
+.hidden{display:none!important}
+svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+svg.f{fill:currentColor;stroke-width:1.5}
+input,select{width:100%;padding:11px 12px;background:var(--bg);border:1px solid var(--line);border-radius:8px}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+label{display:block;margin:14px 0 6px;color:var(--muted);font-size:calc(13px*var(--fs,1))}
+
+/* servidores */
+#login{height:100%;overflow:auto;display:grid;place-items:center;padding:20px}
+.card{width:100%;max-width:420px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:28px}
+h1{margin:0 0 4px;font-size:calc(24px*var(--fs,1))}
+.sub{color:var(--muted);margin:0 0 22px}
+.btn{width:100%;margin-top:20px;padding:12px;border:0;border-radius:8px;background:var(--accent);color:#fff;font-weight:700;cursor:pointer}
+.btn:disabled{opacity:.6;cursor:wait}
+#err{margin-top:14px;color:#ffb3bd;font-size:calc(14px*var(--fs,1));min-height:20px}
+.srv{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 12px;margin-bottom:8px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+.srv .info{flex:1 1 140px;min-width:0}
+.srv b,.srv small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.srv small{color:var(--muted)}
+.mini{padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:none;cursor:pointer;font-size:calc(13px*var(--fs,1))}
+.mini.go{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+.out{padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:none;cursor:pointer}
+.wide{width:100%;margin-top:10px;padding:11px}
+
+/* tela inicial */
+#home{height:100%;overflow:auto;display:flex;flex-direction:column;background:linear-gradient(#070a24,#000)}
+.htop{display:flex;align-items:center;gap:16px;padding:16px 24px}
+.brand{display:flex;align-items:center;gap:10px;font-size:calc(22px*var(--fs,1));font-weight:800}
+.logo{width:36px;height:36px;flex:none}
+.brand b{color:#8ea2ff}
+#clock{flex:1;color:var(--muted)}
+.gear{font-size:calc(28px*var(--fs,1));background:none;border:0;color:#fff;cursor:pointer;padding:6px;display:grid;place-items:center}
+.grid{flex:1;min-height:340px;display:grid;gap:14px 16px;padding:8px 24px;grid-template-columns:1.1fr 1fr 1fr;grid-template-rows:minmax(0,1.9fr) minmax(0,.8fr);grid-template-areas:"live movies series" "live epg srv"}
+.t{display:flex;flex-direction:column;border-radius:14px;overflow:hidden;color:#fff;min-height:0}
+.hit{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:none;border:0;color:inherit;font-weight:800;font-size:clamp(16px,2.6vw,30px);cursor:pointer}
+.hit svg{font-size:clamp(44px,8vw,96px)}
+.upd{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;background:rgba(0,0,0,.3);font-size:clamp(11px,1.4vw,15px)}
+.rf{background:#fff;color:#000;border:0;border-radius:8px;padding:6px 18px;font-size:calc(22px*var(--fs,1));cursor:pointer;display:grid;place-items:center}
+.live{grid-area:live;background:linear-gradient(#37d39b,#3a50e0 80%)}
+.movies{grid-area:movies;background:linear-gradient(90deg,#e03a5c,#f6a03a)}
+.series{grid-area:series;background:linear-gradient(135deg,#a23aae,#4f9fe0)}
+.sm{background:#72ab87}
+.sm .hit{flex-direction:row;justify-content:flex-start;padding:0 24px;font-size:clamp(14px,1.8vw,20px)}
+.sm .hit svg{font-size:calc(30px*var(--fs,1))}
+#epgt{grid-area:epg}
+#srvt{grid-area:srv}
+.foot{display:flex;justify-content:space-around;gap:10px;flex-wrap:wrap;padding:14px 24px 22px;color:#dfe4ff}
+
+/* categorias e lista */
+#app{height:100%;display:grid;grid-template-columns:250px 1fr;grid-template-areas:"cats lst"}
+#cats{grid-area:cats;display:flex;flex-direction:column;min-height:0;background:#000;border-right:1px solid var(--line)}
+aside{grid-area:lst;display:flex;flex-direction:column;min-height:0;background:var(--panel)}
+.head{display:flex;flex-direction:column;align-items:center;gap:10px;padding:16px 12px 12px}
+.head h2{margin:0;font-size:calc(22px*var(--fs,1));color:#fff}
+#catlist{overflow:auto;flex:1;padding-bottom:20px}
+.cat{display:block;width:100%;padding:13px 16px;border:0;background:none;color:#8a8a8a;text-align:left;cursor:pointer}
+.cat:hover{color:#fff}
+.cat.sp{color:#e8c872}
+.cat.on{color:#fff;background:linear-gradient(90deg,#2d4f9e,#0e1a2b)}
+.tools{display:flex;gap:8px;padding:12px;border-bottom:1px solid var(--line)}
+#list{overflow:auto;flex:1}
+.ch{display:flex;gap:10px;align-items:center;width:100%;padding:9px 12px;border:0;border-bottom:1px solid var(--line);background:none;text-align:left;cursor:pointer}
+.ch:hover,.ch.on{background:var(--bg)}
+.ch.on{box-shadow:inset 3px 0 var(--accent)}
+.lg{position:relative;width:40px;height:40px;border-radius:8px;background:#1a2350;display:grid;place-items:center;flex:none;overflow:hidden;font-size:calc(13px*var(--fs,1));font-weight:700;color:#8d97c4}
+.lg i{font-style:normal}
+.lg img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:3px;background:#e9ecf5;opacity:0;transition:opacity .2s}
+.ch span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.itm{display:flex;align-items:center;border-bottom:1px solid var(--line)}
+.itm .ch{flex:1;min-width:0;border-bottom:0}
+.fav{flex:none;width:48px;align-self:stretch;border:0;background:none;color:var(--muted);font-size:calc(22px*var(--fs,1));cursor:pointer}
+.fav.on,#pfav.on{color:#ffb81c}
+#player.lock #pfav{visibility:hidden}
+.ch.ep{position:relative}
+.ch.ep.seen span{color:var(--muted)}
+.ch .stt{margin-left:auto;font-style:normal;font-size:calc(12px*var(--fs,1));white-space:nowrap;flex:none}
+.ch .stt.ok{color:#5fd38a}
+.ch .stt.pt{color:#ffb81c}
+.ch .epbar{position:absolute;left:0;bottom:0;height:3px;background:#ffb81c}
+.sea{padding:12px 12px 6px;color:var(--muted);font-size:calc(13px*var(--fs,1))}
+.note{padding:16px;color:var(--muted)}
+:root{--dw:clamp(340px,52vw,660px)}
+body.drawer #app{position:fixed;left:0;top:0;bottom:0;height:auto;width:var(--dw);z-index:30;grid-template-columns:minmax(120px,36%) 1fr}
+body.drawer #player{left:var(--dw)}
+body.drawer #ctl{display:none}
+#pclose{display:none;position:absolute;top:10px;right:10px;z-index:2;width:36px;height:36px;font-size:calc(16px*var(--fs,1))}
+body.drawer #pclose{display:grid}
+#mlab{display:none;align-items:center;gap:12px;padding:12px 56px 12px 14px;background:#05081c;border-bottom:1px solid var(--line)}
+#mlab>div{min-width:0}
+#mlogo{width:48px;height:48px;object-fit:contain;border-radius:8px;background:#e9ecf5;padding:3px;flex:none}
+#mt,#mp{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#mt{font-size:calc(22px*var(--fs,1));font-weight:700}
+#mp{font-size:calc(18px*var(--fs,1));color:#ffb81c}
+#mepg{display:none;background:#05081c;border-top:1px solid var(--line);padding:12px 16px;overflow:auto;max-height:42%}
+.mnow{display:flex;justify-content:space-between;gap:12px;font-size:calc(18px*var(--fs,1));font-weight:600}
+#mepg .bar{margin:8px 0 10px}
+#mnext{list-style:none;margin:0;padding:0}
+#mnext li{display:flex;gap:14px;padding:8px 0;border-top:1px solid var(--line);font-size:calc(16px*var(--fs,1))}
+#mnext b{color:var(--muted);font-weight:600;min-width:52px}
+body.drawer #player{display:flex;flex-direction:column}
+body.drawer #vbox{position:relative;inset:auto;flex:1;min-height:0}
+body.drawer #mlab{display:flex}
+body.drawer #player[data-mode=live] #mepg{display:block}
+body.drawer #vbox::after{content:"Toque aqui para tela cheia";position:absolute;left:0;right:0;bottom:6px;text-align:center;font-size:calc(12px*var(--fs,1));color:#fffb;pointer-events:none}
+@media(max-width:760px) and (orientation:portrait){
+ body.drawer #app{right:0;top:46vh;width:auto}
+ body.drawer #player{left:0;bottom:auto;height:46vh}
+ #mt{font-size:calc(17px*var(--fs,1))}
+ #mp{font-size:calc(14px*var(--fs,1))}
+ #mnext{display:none}
+ .mnow{font-size:calc(15px*var(--fs,1))}
+}
+
+/* player */
+#player{position:fixed;inset:0;z-index:20;background:#000;overflow:hidden;user-select:none}
+#vbox{position:absolute;inset:0}
+#v{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:100%;height:100%;object-fit:contain;background:#000}
+#aspmenu{position:absolute;right:10%;bottom:78px;min-width:220px;padding:6px;border:1px solid var(--line);border-radius:12px;background:#0b1030f2}
+.opt{display:flex;justify-content:space-between;gap:20px;width:100%;padding:10px 14px;border:0;border-radius:8px;background:none;color:#fff;font-size:calc(16px*var(--fs,1));cursor:pointer}
+.opt.on{background:var(--accent)}
+#spin{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px;border:5px solid #fff4;border-top-color:#fff;border-radius:50%;animation:rot 1s linear infinite;pointer-events:none}
+@keyframes rot{to{transform:rotate(360deg)}}
+#msg{position:absolute;left:0;right:0;top:62%;text-align:center;padding:0 24px;color:#cbd5e1;pointer-events:none}
+#toast{position:absolute;top:18%;left:50%;transform:translateX(-50%);padding:6px 16px;border-radius:20px;background:#000b;opacity:0;transition:opacity .2s;pointer-events:none}
+#toast.show{opacity:1}
+#ctl{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;padding:max(14px,env(safe-area-inset-top)) 22px max(14px,env(safe-area-inset-bottom));background:linear-gradient(#000a,#0000 22%,#0000 60%,#000b);opacity:0;pointer-events:none;transition:opacity .2s}
+#player.ui #ctl{opacity:1;pointer-events:auto}
+.ptop{display:flex;align-items:center;gap:14px}
+#ptitle{flex:1;font-size:calc(18px*var(--fs,1));overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rb{width:44px;height:44px;border-radius:50%;border:0;color:#fff;font-size:calc(22px*var(--fs,1));background:linear-gradient(135deg,#5a35b8,#3a5be0);display:grid;place-items:center;cursor:pointer}
+.pl{background:none;border:0;color:#fff;font-size:calc(30px*var(--fs,1));cursor:pointer;padding:6px;display:grid;place-items:center}
+.pmid{display:flex;align-items:center;justify-content:space-between;flex:1;padding:10px 0;min-height:0}
+.vs{display:flex;flex-direction:column;align-items:center;gap:10px;font-size:calc(26px*var(--fs,1));height:min(48vh,300px)}
+.vs input{flex:1;writing-mode:vertical-lr;direction:rtl;width:22px;padding:0;border:0;background:none;accent-color:#fff}
+.trio{display:flex;align-items:center;gap:clamp(24px,12vw,160px)}
+.trio .pl{font-size:calc(44px*var(--fs,1))}
+.trio .big{font-size:calc(64px*var(--fs,1))}
+.pinfo{display:flex;gap:12px;align-items:center}
+#plogo{width:56px;height:40px;object-fit:contain;border-radius:6px;background:#e6e8ee}
+.rows{flex:1;min-width:0}
+.r1,.r2{display:flex;justify-content:space-between;gap:12px}
+.r1 span:first-child,.r2 span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar{height:5px;background:#ffffff40;margin:6px 0;border-radius:3px}
+.bar i{display:block;height:100%;width:0;background:#ffb81c;border-radius:3px}
+.pseek{display:none;align-items:center;gap:12px;font-size:calc(15px*var(--fs,1))}
+#player[data-mode=vod] .pseek,#player[data-mode=series] .pseek{display:flex}
+.pseek input{flex:1;height:24px;padding:0;border:0;background:none;accent-color:#ffb81c}
+#player.lock .pseek{visibility:hidden}
+.pbot{display:flex;justify-content:space-around;gap:10px;padding-top:6px}
+.pbot button{background:none;border:0;color:#fff;font-size:calc(17px*var(--fs,1));display:flex;gap:10px;align-items:center;cursor:pointer;padding:8px}
+.pbot svg{font-size:calc(26px*var(--fs,1))}
+#pfs{position:absolute;right:22px;bottom:max(10px,env(safe-area-inset-bottom))}
+#player.lock #pfs{visibility:hidden}
+#player.lock .pmid,#player.lock .pinfo,#player.lock .pbot,#player.lock #pback,#player.lock #ptitle{visibility:hidden}
+#player[data-mode=vod] .pinfo,#player[data-mode=series] .pinfo{display:none}
+#player[data-mode=vod] #pprev,#player[data-mode=vod] #pnext{visibility:hidden}
+
+/* placeholders de carregamento */
+.skr{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--line)}
+.skr i{width:40px;height:40px;border-radius:8px;flex:none}
+.skr b{height:14px;border-radius:6px;flex:1;max-width:60%}
+.skc i{display:block;aspect-ratio:2/3;border-radius:8px}
+.skc b{display:block;height:12px;margin-top:8px;border-radius:6px;width:80%}
+.skr i,.skr b,.skc i,.skc b{background:linear-gradient(90deg,var(--line) 25%,rgba(255,255,255,.12) 50%,var(--line) 75%);background-size:400px 100%;animation:shim 1.3s linear infinite}
+@keyframes shim{0%{background-position:-400px 0}100%{background-position:400px 0}}
+/* transições suaves entre telas */
+@keyframes fin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+#login:not(.hidden),#home:not(.hidden),#app:not(.hidden),#search:not(.hidden),#guide:not(.hidden),#cfg:not(.hidden),#player:not(.hidden){animation:fin .2s ease}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* o player sempre fica escuro, em qualquer tema */
+#player{--bg:#070a1e;--panel:#0b1030;--line:#1c2350;--text:#eef1ff;--muted:#8d97c4;color:var(--text)}
+/* ajustes */
+#cfg{height:100%;display:flex;flex-direction:column;background:var(--bg)}
+#cbody{flex:1;overflow:auto;padding:16px;max-width:720px;width:100%;margin:0 auto}
+#cbody h4{margin:18px 0 8px;color:var(--muted);font-size:calc(13px*var(--fs,1));text-transform:uppercase}
+.crow{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid var(--line)}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:none;color:inherit;cursor:pointer}
+.seg button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+#cmsg{color:var(--muted);font-size:calc(13px*var(--fs,1));min-height:20px}
+/* tema claro */
+:root[data-theme=light]{--bg:#f3f5fb;--panel:#ffffff;--line:#d9deef;--text:#0e1330;--muted:#5a6694;--accent:#4254d8}
+[data-theme=light] #home{background:linear-gradient(#eef1fb,#dfe5f7)}
+[data-theme=light] .brand b{color:#3b4fd0}
+[data-theme=light] .gear,[data-theme=light] #cont h3{color:var(--text)}
+[data-theme=light] .foot{color:#3a456f}
+[data-theme=light] .cimg,[data-theme=light] .lg{background:#e3e8f7}
+[data-theme=light] .lg{color:#6c78a6}
+[data-theme=light] #cats{background:#eef1fb}
+[data-theme=light] .head h2{color:var(--text)}
+[data-theme=light] .cat{color:#5a6694}
+[data-theme=light] .cat.sp{color:#a86b00}
+[data-theme=light] .cat:hover{color:var(--text)}
+[data-theme=light] .cat.on{color:#fff;background:linear-gradient(90deg,#3b4fd0,#6b7cf0)}
+[data-theme=light] .ch:hover,[data-theme=light] .ch.on{background:#eaeefb}
+[data-theme=light] .dx{color:#33406e}
+[data-theme=light] .gp{background:#eaeefb}
+[data-theme=light] .gp.now{background:#d7defa}
+[data-theme=light] .fav.on{color:#d98a00}
+[data-theme=light] #list.pgrid .fav{background:#fffc}
+[data-theme=light] .srv{background:#f3f5fb}
+[data-theme=light] .mini.go,[data-theme=light] .btn{color:#fff}
+/* modo TV */
+:root.tv .ch{padding-top:14px;padding-bottom:14px}
+:root.tv .cat{padding:16px 18px}
+:root.tv .lg{width:52px;height:52px}
+:root.tv #list.pgrid{grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:16px}
+:root.tv button:focus-visible,:root.tv .gp:focus-visible,:root.tv summary:focus-visible{outline-width:5px}
+:root.tv body:not(.drawer) #app{grid-template-columns:300px 1fr}
+:root.tv .grid{gap:22px}
+:root.tv #home,:root.tv #search,:root.tv #guide,:root.tv #cfg{padding:1.2vh 2vw}
+/* tablet, tela grande e celular deitado */
+@media(min-width:900px) and (max-width:1279px){#list.pgrid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}#app{grid-template-columns:240px 1fr}}
+@media(min-width:1280px){#list.pgrid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}}
+@media(max-height:520px) and (orientation:landscape){
+ .htop{padding:8px 16px}
+ .grid{min-height:0;grid-template-rows:minmax(110px,1.6fr) minmax(60px,.7fr)}
+ #ctl{padding-top:8px;padding-bottom:8px}
+ .vs{height:min(40vh,200px)}
+ .trio{gap:clamp(16px,6vw,80px)}
+ .trio .pl{font-size:calc(34px*var(--fs,1))}
+ .trio .big{font-size:calc(48px*var(--fs,1))}
+ .pbot{padding-top:0}
+ #mlab{padding:6px 50px 6px 10px}
+ #mt{font-size:calc(16px*var(--fs,1))}
+ #mp{font-size:calc(13px*var(--fs,1))}
+}
+/* continuar assistindo */
+#cont{flex:none;padding:0 24px 8px}
+#cont h3{margin:6px 0 8px;font-size:calc(16px*var(--fs,1));color:#dfe4ff}
+#controw{display:flex;gap:12px;overflow-x:auto;padding-bottom:8px}
+.cc{flex:none;width:150px;background:none;border:0;color:inherit;text-align:left;cursor:pointer}
+.cimg{position:relative;display:block;width:150px;height:90px;border-radius:8px;overflow:hidden;background:#1a2350}
+.cimg img{width:100%;height:100%;object-fit:cover}
+.cimg .epbar{position:absolute;left:0;bottom:0;height:4px;background:#ffb81c}
+.ct{display:block;margin-top:4px;font-size:calc(13px*var(--fs,1));overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cs{display:block;font-size:calc(12px*var(--fs,1));color:var(--muted)}
+/* busca geral e guia */
+#search,#guide{height:100%;display:flex;flex-direction:column;background:var(--bg)}
+.stop{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
+.stop input,.stop select{flex:1;min-width:0}
+#sres{flex:1;overflow:auto;padding-bottom:20px}
+#gmsg{padding:6px 16px;font-size:calc(12px*var(--fs,1));color:var(--muted)}
+#gbody{flex:1;overflow:auto}
+.gin{position:relative}
+.ghead,.grow{display:flex}
+.gch{position:sticky;left:0;z-index:2;flex:none;width:170px;display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--panel);border:0;border-bottom:1px solid var(--line);border-right:1px solid var(--line);text-align:left;cursor:pointer;color:inherit}
+.gch span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:calc(13px*var(--fs,1))}
+.gtl{position:relative;flex:none;height:58px;border-bottom:1px solid var(--line)}
+.ghead .gtl{height:30px}
+.ghead .gtl span{position:absolute;top:6px;font-size:calc(12px*var(--fs,1));color:var(--muted);transform:translateX(4px)}
+.gp{position:absolute;top:4px;bottom:4px;padding:4px 8px;overflow:hidden;text-align:left;background:#16204a;border:1px solid var(--line);border-radius:6px;color:inherit;cursor:pointer;font-size:calc(13px*var(--fs,1))}
+.gp small{display:block;color:var(--muted);font-size:calc(11px*var(--fs,1))}
+.gp.now{border-color:var(--accent);background:#1c2a66}
+.gp.none{background:none;border-style:dashed;color:var(--muted);cursor:default}
+.gnow{position:absolute;top:0;bottom:0;width:2px;background:#ff4d6d;z-index:1;pointer-events:none}
+/* grade de pôsteres */
+#list.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;padding:10px;align-content:start}
+#list.pgrid .itm{position:relative;display:block;border:0}
+#list.pgrid .ch{flex-direction:column;align-items:stretch;padding:0;gap:6px;text-align:center}
+#list.pgrid .lg{width:100%;height:auto;aspect-ratio:2/3;font-size:calc(20px*var(--fs,1))}
+#list.pgrid .lg img{object-fit:cover;padding:0}
+#list.pgrid .ch>span:last-child{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;font-size:calc(13px*var(--fs,1));min-height:2.6em}
+#list.pgrid .fav{position:absolute;top:6px;right:6px;width:32px;height:32px;border-radius:50%;background:#000a;font-size:calc(18px*var(--fs,1));align-self:auto}
+#list.pgrid .note{grid-column:1/-1}
+/* detalhes */
+.dt{padding:12px}
+.dbd{width:100%;max-height:150px;object-fit:cover;border-radius:8px;margin-bottom:10px}
+.dh{display:flex;gap:12px}
+.dp{width:110px;border-radius:8px;flex:none;align-self:flex-start}
+.di{min-width:0;display:flex;flex-direction:column;gap:4px}
+.dn{font-size:calc(20px*var(--fs,1))}
+.dr{color:#ffb81c}
+.dm{color:var(--muted);font-size:calc(13px*var(--fs,1))}
+.dpl{margin:12px 0 6px;font-size:calc(14px*var(--fs,1));display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer}
+.dpl.open{-webkit-line-clamp:unset}
+.dx{margin:4px 0;font-size:calc(13px*var(--fs,1));color:#cdd3f0}
+.dact{display:flex;gap:10px;padding:0 12px 12px}
+.dact .btn{width:auto;margin:0;padding:12px 22px}
+/* opções do player */
+#optmenu{position:absolute;right:22px;top:72px;min-width:230px;max-height:68%;overflow:auto;padding:6px;border:1px solid var(--line);border-radius:12px;background:#0b1030f2}
+.og{padding:10px 14px 4px;font-size:calc(12px*var(--fs,1));color:var(--muted);text-transform:uppercase}
+.pl.sk{font-size:calc(18px*var(--fs,1));font-weight:700}
+#player[data-mode=live] .sk{display:none}
+#player.lock #popt,#player.lock #pcast{visibility:hidden}
+#castbar{position:absolute;left:50%;bottom:96px;transform:translateX(-50%);display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:14px;background:#0b1030f2;border:1px solid var(--line);z-index:3}
+details#bk summary{margin-top:16px;color:var(--muted);cursor:pointer}
+textarea{width:100%;margin-top:10px;padding:11px 12px;background:var(--bg);border:1px solid var(--line);border-radius:8px;color:inherit;font:inherit}
+button:focus-visible,.gp:focus-visible,summary:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+@media(max-width:760px){#cont{padding:0 14px 8px}.gch{width:120px}#optmenu{right:10px}}
+@media(max-width:760px){
+ .grid{grid-template-columns:1fr 1fr;grid-template-rows:auto 150px 70px;grid-template-areas:"live live" "movies series" "epg srv"}
+ .live{min-height:200px}
+ #app{grid-template-columns:38% 62%}
+ .head{padding:10px}
+ .htop,.grid,.foot{padding-left:14px;padding-right:14px}
+ #ptitle{font-size:calc(15px*var(--fs,1))}
+ .pbot button{font-size:calc(14px*var(--fs,1))}
+}
+/* grade de pôsteres: ajustes por tamanho de tela (ficam por último para valerem) */
+@media(min-width:900px) and (max-width:1279px){#list.pgrid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}}
+@media(min-width:1280px){#list.pgrid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}}
+@media(max-width:760px){#list.pgrid{grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px;padding:8px}#list.pgrid .ch>span:last-child{font-size:calc(12px*var(--fs,1))}}
+:root.tv #list.pgrid{grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:16px}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+ <symbol id="i-tv" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="3"/><path d="M8 3l4 4 4-4M10 11l5 3-5 3z"/></symbol>
+ <symbol id="i-movie" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M10 8l6 4-6 4z"/></symbol>
+ <symbol id="i-series" viewBox="0 0 24 24"><rect x="3" y="10" width="18" height="10" rx="1"/><path d="M3 10l2-5 16 3-1 2M9 6l2 4M14 7l2 4"/></symbol>
+ <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 8a8 8 0 0 0-14-2M4 3v4h4M4 16a8 8 0 0 0 14 2M20 21v-4h-4"/></symbol>
+ <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9L7 7M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></symbol>
+ <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
+ <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+ <symbol id="i-unlock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 7.5-2"/></symbol>
+ <symbol id="i-prev" viewBox="0 0 24 24"><path d="M6 5v14M19 5L9 12l10 7z"/></symbol>
+ <symbol id="i-next" viewBox="0 0 24 24"><path d="M18 5v14M5 5l10 7-10 7z"/></symbol>
+ <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></symbol>
+ <symbol id="i-pause" viewBox="0 0 24 24"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></symbol>
+ <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/></symbol>
+ <symbol id="i-vol" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9zM16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></symbol>
+ <symbol id="i-list" viewBox="0 0 24 24"><rect x="3" y="8" width="14" height="11" rx="1"/><path d="M7 4h14v11"/></symbol>
+ <symbol id="i-logo" viewBox="0 0 1024 1024">
+  <defs><linearGradient id="tpg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5a35b8"/><stop offset="1" stop-color="#3a5be0"/></linearGradient></defs>
+  <rect width="1024" height="1024" rx="225" fill="url(#tpg)"/>
+  <path fill="#fff" fill-rule="evenodd" d="M285 223H739A95 95 0 0 1 834 318V578A95 95 0 0 1 739 673H285A95 95 0 0 1 190 578V318A95 95 0 0 1 285 223ZM430 333V563L640 448Z"/>
+  <rect x="462" y="660" width="100" height="97" fill="#fff"/>
+  <rect x="352" y="745" width="320" height="56" rx="28" fill="#fff"/>
+ </symbol>
+ <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-5-5"/></symbol>
+ <symbol id="i-cast" viewBox="0 0 24 24"><path d="M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6M2 12a9 9 0 0 1 8 8M2 16a5 5 0 0 1 4 4M2 20h.01"/></symbol>
+ <symbol id="i-expand" viewBox="0 0 24 24"><path d="M14 3h7v7M10 21H3v-7M21 3l-7 7M3 21l7-7"/></symbol>
+ <symbol id="i-shrink" viewBox="0 0 24 24"><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/></symbol>
+ <symbol id="i-aspect" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></symbol>
+</svg>
+
+<section id="login">
+ <div class="card">
+  <button class="out hidden" id="srvback" style="margin-bottom:14px">‹ Voltar ao início</button>
+  <h1>Servidores</h1>
+  <p class="sub">Escolha um servidor ou adicione um novo.</p>
+  <div id="srvlist"></div>
+  <div id="form" class="hidden">
+   <label for="nm">Nome (opcional)</label>
+   <input id="nm" placeholder="Minha lista" autocomplete="off">
+   <label for="dns">DNS do servidor</label>
+   <input id="dns" placeholder="http://exemplo.com:8080" autocapitalize="off" autocomplete="off" inputmode="url">
+   <label for="usr">Usuário</label>
+   <input id="usr" autocapitalize="off" autocomplete="off">
+   <label for="pwd">Senha</label>
+   <input id="pwd" type="password" autocomplete="off">
+   <label for="epgurl">EPG manual (opcional)</label>
+   <input id="epgurl" placeholder="http://exemplo.com/epg.xml" autocapitalize="off" autocomplete="off" inputmode="url">
+   <p class="sub" style="font-size:12px;margin:6px 0 0">Link XMLTV (.xml ou .xml.gz). Em branco, o app busca sozinho em DNS/xmltv.php com o seu usuário e senha.</p>
+   <button class="btn" id="save">Salvar servidor</button>
+   <button class="out wide" id="cancel">Cancelar</button>
+  </div>
+  <button class="btn" id="add">+ Adicionar servidor</button>
+  <details id="bk"><summary>Backup e restauração</summary>
+   <p class="sub" style="font-size:12px;margin:8px 0">O backup inclui servidores (com as senhas), favoritos e histórico. Guarde-o com cuidado.</p>
+   <button class="out wide" id="bkexp">Exportar para arquivo</button>
+   <button class="out wide" id="bkcopy">Copiar backup (texto)</button>
+   <button class="out wide" id="bkimp">Importar de arquivo</button>
+   <input type="file" id="bkfile" accept="application/json,.json" class="hidden">
+   <textarea id="bktxt" rows="3" placeholder="Cole aqui o texto do backup"></textarea>
+   <button class="out wide" id="bkpaste">Importar do texto</button>
+  </details>
+  <div id="err" role="alert"></div>
+ </div>
+</section>
+
+<section id="home" class="hidden">
+ <div class="htop">
+  <div class="brand"><svg class="logo" viewBox="0 0 1024 1024" aria-hidden="true"><use href="#i-logo"/></svg><span>Tela<b>Play</b></span></div><span id="clock"></span>
+  <button class="out" id="msbtn" data-ic="search"> Busca geral</button>
+  <button class="out" id="cfgbtn">Ajustes</button>
+  <button class="out hidden" id="inst">Instalar app</button>
+  <button class="gear" id="out" data-ic="gear" aria-label="Servidores"></button>
+ </div>
+ <div class="grid">
+  <div class="t live">
+   <button class="hit" data-mode="live" data-ic="tv"><span>TV AO VIVO</span></button>
+   <div class="upd"><span data-u="live"></span><button class="rf" data-r="live" data-ic="refresh" aria-label="Atualizar"></button></div>
+  </div>
+  <div class="t movies">
+   <button class="hit" data-mode="vod" data-ic="movie"><span>FILMES</span></button>
+   <div class="upd"><span data-u="vod"></span><button class="rf" data-r="vod" data-ic="refresh" aria-label="Atualizar"></button></div>
+  </div>
+  <div class="t series">
+   <button class="hit" data-mode="series" data-ic="series"><span>SÉRIES</span></button>
+   <div class="upd"><span data-u="series"></span><button class="rf" data-r="series" data-ic="refresh" aria-label="Atualizar"></button></div>
+  </div>
+  <div class="t sm" id="epgt"><button class="hit" id="epgbtn" data-ic="list"><span>EPG</span></button></div>
+  <div class="t sm" id="srvt"><button class="hit" id="srvbtn" data-ic="gear"><span>SERVIDORES</span></button></div>
+ </div>
+ <div id="cont" class="hidden"><h3>Continuar assistindo</h3><div id="controw"></div></div>
+ <div class="foot"><span id="exp"></span><span id="acc"></span><span id="conn"></span></div>
+</section>
+
+<section id="app" class="hidden">
+ <nav id="cats">
+  <div class="head"><h2 id="title">CATEGORIAS</h2><button class="out" id="back">‹ Início</button></div>
+  <div id="catlist"></div>
+ </nav>
+ <aside>
+  <div class="tools" id="tools"><input id="q" type="search" placeholder="Buscar" aria-label="Buscar"><button class="out hidden" id="vtog" aria-label="Alternar lista e grade">▦</button></div>
+  <div id="list"></div>
+ </aside>
+</section>
+
+<section id="search" class="hidden">
+ <div class="stop"><button class="out" id="sback">‹ Início</button><input id="sq" type="search" placeholder="Buscar canais, filmes e séries" aria-label="Busca geral" autocomplete="off"></div>
+ <div id="sres"></div>
+</section>
+
+<section id="guide" class="hidden">
+ <div class="stop"><button class="out" id="gback">‹ Início</button><select id="gcat" aria-label="Categoria"></select></div>
+ <div id="gmsg"></div>
+ <div id="gbody"></div>
+</section>
+
+<section id="cfg" class="hidden">
+ <div class="stop"><button class="out" id="cback">‹ Início</button><b>Ajustes</b></div>
+ <div id="cbody">
+  <h4>Aparência</h4>
+  <div class="crow"><span>Tema</span><div class="seg" data-k="theme"><button data-v="dark">Escuro</button><button data-v="light">Claro</button></div></div>
+  <div class="crow"><span>Tamanho da letra</span><div class="seg" data-k="font"><button data-v="0.9">Pequeno</button><button data-v="1">Normal</button><button data-v="1.15">Grande</button><button data-v="1.3">Extra</button></div></div>
+  <div class="crow"><span>Modo TV (telas e botões maiores)</span><div class="seg" data-k="tv"><button data-v="auto">Automático</button><button data-v="on">Ligado</button><button data-v="off">Desligado</button></div></div>
+  <h4>Listas e histórico</h4>
+  <button class="out wide" id="cclr">Limpar o cache das listas</button>
+  <button class="out wide" id="chist">Limpar histórico e marcas de assistido</button>
+  <p id="cmsg"></p>
+ </div>
+</section>
+
+<section id="player" class="hidden ui" data-mode="live">
+ <div id="mlab"><img id="mlogo" alt="" referrerpolicy="no-referrer" style="display:none"><div><b id="mt"></b><span id="mp"></span></div></div>
+ <div id="vbox"><video id="v" autoplay playsinline></video><div id="spin" class="hidden"></div><div id="msg"></div></div>
+ <div id="mepg"><div class="mnow"><span id="mn1"></span><span id="mn1t"></span></div><div class="bar"><i id="mbar"></i></div><ul id="mnext"></ul></div>
+ <div id="toast"></div>
+ <div id="castbar" class="hidden"><span id="castmsg"></span><button class="out" id="castpp" aria-label="Pausar ou continuar">⏯</button><button class="out" id="castx">Parar</button></div>
+ <button class="rb" id="pclose" aria-label="Fechar player">✕</button>
+ <div id="ctl">
+  <div class="ptop">
+   <button class="rb" id="pback" data-ic="back" aria-label="Voltar"></button>
+   <span id="ptitle"></span>
+   <button class="pl" id="pcast" data-ic="cast" aria-label="Transmitir para a TV"></button>
+   <button class="pl" id="popt" data-ic="gear" aria-label="Opções"></button>
+   <button class="pl" id="pfav" aria-label="Favorito">☆</button>
+   <button class="pl" id="plock" data-ic="unlock" aria-label="Bloquear"></button>
+  </div>
+  <div class="pmid">
+   <div class="vs"><span data-ic="sun"></span><input type="range" id="bri" min="30" max="100" value="100" aria-label="Brilho"></div>
+   <div class="trio">
+    <button class="pl sk" id="prew" aria-label="Voltar 10 segundos">↺10</button>
+    <button class="pl" id="pprev" data-ic="prev" data-f="1" aria-label="Anterior"></button>
+    <button class="pl big" id="ppp" data-ic="play" data-f="1" aria-label="Reproduzir ou pausar"></button>
+    <button class="pl" id="pnext" data-ic="next" data-f="1" aria-label="Próximo"></button>
+    <button class="pl sk" id="pfwd" aria-label="Avançar 10 segundos">10↻</button>
+   </div>
+   <div class="vs"><span data-ic="vol"></span><input type="range" id="vol" min="0" max="100" value="100" aria-label="Volume"></div>
+  </div>
+  <div class="pseek"><span id="tcur">0:00</span><input type="range" id="seek" min="0" max="1000" value="0" aria-label="Progresso"><span id="tdur">0:00</span></div>
+  <div class="pinfo">
+   <img id="plogo" alt="" referrerpolicy="no-referrer">
+   <div class="rows">
+    <div class="r1"><span id="pnow"></span><span id="pnowt"></span></div>
+    <div class="bar"><i id="pbar"></i></div>
+    <div class="r2"><span id="pnext2"></span><span id="pnextt"></span></div>
+   </div>
+  </div>
+  <div class="pbot">
+   <button id="plist" data-ic="list"><span id="plistl">Lista de Canais</span></button>
+   <button id="pasp" data-ic="aspect"><span>Proporção da tela</span></button>
+  </div>
+  <div id="aspmenu" class="hidden"></div>
+  <div id="optmenu" class="hidden"></div>
+  <button class="pl" id="pfs" data-ic="expand" aria-label="Tela cheia"></button>
+ </div>
+</section>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const ic = (n, f) => `<svg class="i${f ? " f" : ""}"><use href="#i-${n}"/></svg>`;
+document.querySelectorAll("[data-ic]").forEach(e => e.insertAdjacentHTML("afterbegin", ic(e.dataset.ic, e.dataset.f)));
+
+const CFG = {
+  live:   {cats:"get_live_categories",   items:"get_live_streams", id:"stream_id", img:"stream_icon"},
+  vod:    {cats:"get_vod_categories",    items:"get_vod_streams",  id:"stream_id", img:"stream_icon"},
+  series: {cats:"get_series_categories", items:"get_series",       id:"series_id", img:"cover"}
+};
+let S = {base:"", u:"", p:"", epg:"", mode:"", D:{}}, hls = null, mp = null, servers = [], editing = -1;
+
+/* ---------- servidores ---------- */
+function load() {
+  try {
+    servers = JSON.parse(localStorage.getItem("iptv_servers") || "[]");
+    if (!servers.length) {
+      const o = JSON.parse(localStorage.getItem("iptv") || "null");
+      if (o) servers = [{name: "Servidor 1", dns: o.dns, usr: o.usr, pwd: o.pwd}];
+    }
+  } catch (e) { servers = []; }
+}
+function persist() { try { localStorage.setItem("iptv_servers", JSON.stringify(servers)); } catch (e) {} }
+
+function renderServers() {
+  $("srvlist").innerHTML = servers.map((s, i) =>
+    `<div class="srv"><div class="info"><b>${esc(s.name)}</b><small>${esc(s.dns)}</small></div>
+     <button class="mini go" data-a="go" data-i="${i}">Entrar</button>
+     <button class="mini" data-a="edit" data-i="${i}">Editar</button>
+     <button class="mini" data-a="del" data-i="${i}">Excluir</button></div>`).join("");
+  if (!servers.length) openForm(-1); else closeForm();
+}
+function openForm(i) {
+  editing = i;
+  const s = servers[i] || {name: "", dns: "", usr: "", pwd: "", epg: ""};
+  $("nm").value = s.name; $("dns").value = s.dns; $("usr").value = s.usr; $("pwd").value = s.pwd; $("epgurl").value = s.epg || "";
+  $("form").classList.remove("hidden"); $("add").classList.add("hidden");
+  $("cancel").classList.toggle("hidden", !servers.length);
+  $("err").textContent = "";
+}
+function closeForm() { $("form").classList.add("hidden"); $("add").classList.remove("hidden"); }
+$("add").onclick = () => openForm(-1);
+$("cancel").onclick = closeForm;
+$("save").onclick = () => {
+  let dns = $("dns").value.trim().replace(/\/+$/, ""), usr = $("usr").value.trim(), pwd = $("pwd").value;
+  if (!dns || !usr || !pwd) { $("err").textContent = "Preencha DNS, usuário e senha."; return; }
+  if (!/^https?:\/\//i.test(dns)) dns = "http://" + dns;
+  let epg = $("epgurl").value.trim();
+  if (epg && !/^https?:\/\//i.test(epg)) epg = "http://" + epg;
+  const name = $("nm").value.trim() || "Servidor " + (editing >= 0 ? editing + 1 : servers.length + 1);
+  const sv = {name, dns, usr, pwd, epg};
+  if (editing >= 0) servers[editing] = sv; else servers.push(sv);
+  persist(); $("err").textContent = ""; renderServers(); connect(sv, $("save"));
+};
+$("srvlist").onclick = e => {
+  const b = e.target.closest("button"); if (!b) return;
+  const i = Number(b.dataset.i);
+  if (b.dataset.a === "go") connect(servers[i], b);
+  else if (b.dataset.a === "edit") openForm(i);
+  else if (b.dataset.a === "del" && confirm("Excluir o servidor \"" + servers[i].name + "\"?")) {
+    servers.splice(i, 1); persist(); renderServers();
+  }
+};
+
+async function api(extra = "") {
+  const r = await fetch(`${S.base}/player_api.php?username=${encodeURIComponent(S.u)}&password=${encodeURIComponent(S.p)}${extra}`);
+  if (!r.ok) throw new Error("Servidor respondeu com erro " + r.status + ".");
+  return r.json();
+}
+
+function enter(sv) {
+  S = {base: sv.dns, u: sv.usr, p: sv.pwd, epg: sv.epg || "", mode: "", D: {}, in: true};
+  try { localStorage.setItem("iptv_last", sv.dns + "|" + sv.usr); } catch (e) {}
+  $("err").textContent = "";
+  $("conn").innerHTML = "Conectado: <b>" + esc(sv.name) + "</b>";
+  $("exp").textContent = "Expiração: —";
+  const mine = S;
+  ["live", "vod", "series"].forEach(m => idbGet(mkey(m)).then(t => { if (S === mine && t) { (S.cm = S.cm || {})[m] = t; homeUpd(); } }));
+  $("acc").textContent = "";
+  api().then(i => {
+    if (S !== mine) return;
+    const u = (i && i.user_info) || {}, e = Number(u.exp_date) || 0, dias = e ? Math.ceil((e * 1000 - Date.now()) / 864e5) : null;
+    $("exp").textContent = "Expiração: " + (e ? new Date(e * 1000).toLocaleDateString("pt-BR", {day: "numeric", month: "long", year: "numeric"}) + (dias < 0 ? " (vencida)" : dias <= 7 ? " (faltam " + dias + " dias)" : "") : "sem data");
+    $("exp").style.color = e && dias <= 7 ? "#ffb3bd" : "";
+    const st = {Active: "Ativa", Expired: "Expirada", Banned: "Bloqueada", Disabled: "Desativada"}[u.status] || u.status || "—";
+    $("acc").textContent = "Conta: " + st + (Number(u.is_trial) ? " (teste)" : "") + (u.max_connections ? " • Conexões: " + (u.active_cons || 0) + "/" + u.max_connections : "");
+  }).catch(() => {});
+  show("home");
+}
+
+async function connect(sv, btn) {
+  $("err").textContent = "";
+  const prev = S;
+  S = {base: sv.dns, u: sv.usr, p: sv.pwd, epg: sv.epg || "", mode: "", D: {}};
+  btn = btn || {};
+  const t = btn.textContent; btn.disabled = true; btn.textContent = "...";
+  try {
+    const info = await api();
+    if (!info.user_info || Number(info.user_info.auth) !== 1) throw new Error("Usuário ou senha incorretos.");
+    enter(sv);
+  } catch (e) {
+    S = prev;
+    $("err").textContent = e instanceof TypeError
+      ? "Não foi possível conectar. Confira o DNS e a porta. Se a página for https e o servidor http, o navegador bloqueia: abra o arquivo direto no aparelho."
+      : e.message;
+  } finally {
+    btn.disabled = false; btn.textContent = t;
+  }
+}
+
+function show(id) {
+  ["login", "home", "app", "search", "guide", "cfg"].forEach(x => $(x).classList.toggle("hidden", x !== id));
+  if (id === "home") { homeUpd(); renderCont(); }
+  if (id === "login") $("srvback").classList.toggle("hidden", !S.in);
+  autoFocus();
+}
+function leavePlayer() {
+  endCast(); savePos(); stop(); S.direct = false; $("player").classList.add("hidden"); document.body.classList.remove("drawer");
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  if (!$("home").classList.contains("hidden")) renderCont();
+}
+
+/* ---------- tela inicial ---------- */
+function ago(t) {
+  const m = Math.round((Date.now() - t) / 60000);
+  return m < 1 ? "agora" : m < 60 ? m + " min atrás" : Math.round(m / 60) + " h atrás";
+}
+function homeUpd() {
+  ["live", "vod", "series"].forEach(m => {
+    const t = (S.D[m] && S.D[m].t) || (S.cm && S.cm[m]);
+    document.querySelector(`[data-u="${m}"]`).textContent = "Última atualização: " + (t ? ago(t) : "—");
+  });
+}
+function tick() {
+  const d = new Date();
+  $("clock").textContent = d.toLocaleTimeString("pt-BR", {hour: "2-digit", minute: "2-digit"}) + "  " +
+    d.toLocaleDateString("pt-BR", {day: "2-digit", month: "short", year: "numeric"});
+}
+setInterval(() => { tick(); homeUpd(); }, 30000); tick();
+
+document.querySelectorAll(".hit[data-mode]").forEach(t => t.onclick = () => openSection(t.dataset.mode));
+document.querySelectorAll(".rf").forEach(b => b.onclick = async () => {
+  const m = b.dataset.r, u = document.querySelector(`[data-u="${m}"]`);
+  u.textContent = "Atualizando...";
+  try { await loadMode(m, true); } catch (e) { u.textContent = "Falha ao atualizar"; return; }
+  homeUpd();
+});
+$("srvbtn").onclick = $("out").onclick = () => { leavePlayer(); show("login"); };
+$("back").onclick = () => { leavePlayer(); show("home"); };
+
+/* ---------- categorias e lista ---------- */
+/* ---------- cache das listas (IndexedDB) ---------- */
+let dbp = null;
+const idbOpen = () => dbp || (dbp = new Promise((res, rej) => {
+  if (!window.indexedDB) return rej(new Error("sem IndexedDB"));
+  const r = indexedDB.open("player-iptv", 1);
+  r.onupgradeneeded = () => r.result.createObjectStore("kv");
+  r.onsuccess = () => res(r.result);
+  r.onerror = () => rej(r.error);
+}).catch(e => { dbp = null; throw e; }));
+async function idbGet(k) {
+  try { const db = await idbOpen(); return await new Promise((res, rej) => { const q = db.transaction("kv").objectStore("kv").get(k); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }); }
+  catch (_) { return undefined; }
+}
+async function idbSet(k, v) {
+  try { const db = await idbOpen(); await new Promise((res, rej) => { const t = db.transaction("kv", "readwrite"); t.objectStore("kv").put(v, k); t.oncomplete = res; t.onerror = () => rej(t.error); }); } catch (_) {}
+}
+async function idbClear() {
+  try { const db = await idbOpen(); await new Promise((res, rej) => { const t = db.transaction("kv", "readwrite"); t.objectStore("kv").clear(); t.oncomplete = res; t.onerror = () => rej(t.error); }); } catch (_) {}
+}
+const ckey = m => "lists|" + S.base + "|" + S.u + "|" + m;
+const mkey = m => "meta|" + S.base + "|" + S.u + "|" + m;
+function setData(m, cats, items, t) {
+  items.forEach(i => { if (i && i.direct_source) delete i.direct_source; });
+  S.D[m] = {cats, items, t, byId: new Map(items.map(i => [String(i[CFG[m].id]), i]))};
+}
+async function fetchMode(m) {
+  const mine = S, c = CFG[m];
+  const [cats, items] = await Promise.all([api("&action=" + c.cats), api("&action=" + c.items)]);
+  if (S !== mine) return;
+  setData(m, Array.isArray(cats) ? cats : [], Array.isArray(items) ? items : [], Date.now());
+  const d = S.D[m]; idbSet(ckey(m), {t: d.t, cats: d.cats, items: d.items}); idbSet(mkey(m), d.t);
+}
+async function loadMode(m, force) {
+  if (!force) {
+    const rec = await idbGet(ckey(m));
+    if (rec && Array.isArray(rec.items) && rec.items.length) {
+      setData(m, Array.isArray(rec.cats) ? rec.cats : [], rec.items, rec.t || Date.now());
+      if (Date.now() - (rec.t || 0) > 30 * 60e3) refreshBg(m);
+      return;
+    }
+  }
+  await fetchMode(m);
+}
+function refreshBg(m) {
+  const mine = S;
+  fetchMode(m).then(() => { if (S === mine) { homeUpd(); if (S.mode === m && vis("app") && !S.view && !$("list").scrollTop) render(); } }).catch(() => {});
+}
+const skel = (n, grid) => Array.from({length: n}, () => grid ? `<div class="skc"><i></i><b></b></div>` : `<div class="skr"><i></i><b></b></div>`).join("");
+const skelCat = () => Array.from({length: 9}, () => `<div class="skr"><b></b></div>`).join("");
+const skelDet = () => `<div class="dt"><div class="dh"><div class="skc" style="width:110px;flex:none"><i></i></div><div class="di" style="flex:1"><div class="skr" style="padding:0"><b></b></div><div class="skr" style="padding:0"><b style="max-width:40%"></b></div></div></div></div>`;
+
+async function openSection(mode) {
+  S.mode = mode; show("app"); $("q").value = ""; $("title").textContent = {live: "CANAIS", vod: "FILMES", series: "SÉRIES"}[mode] || "CATEGORIAS"; $("tools").classList.remove("hidden");
+  if (!S.D[mode]) {
+    const gr = mode !== "live" && (VIEW[mode] || "grid") === "grid";
+    $("list").classList.toggle("pgrid", gr);
+    $("catlist").innerHTML = skelCat(); $("list").innerHTML = skel(gr ? 12 : 10, gr);
+    try { await loadMode(mode); }
+    catch (e) {
+      $("list").classList.remove("pgrid");
+      $("list").innerHTML = `<p class="note">Não foi possível carregar. Confira o servidor em Servidores.</p><div class="dact"><button class="out" id="retry">Tentar de novo</button></div>`;
+      return;
+    }
+  }
+  S.cat = "";
+  $("catlist").innerHTML = `<button class="cat sp" data-c="__fav">★ FAVORITOS</button><button class="cat sp" data-c="__rec">⟲ VISTO POR ÚLTIMO</button><button class="cat on" data-c="">Todas</button>` +
+    S.D[mode].cats.map(c => `<button class="cat" data-c="${esc(c.category_id)}">${esc(c.category_name)}</button>`).join("");
+  render();
+}
+
+let VIEW = {}; try { VIEW = JSON.parse(localStorage.getItem("iptv_view") || "{}") || {}; } catch (_) {}
+let FAV = {}, REC = {};
+try { FAV = JSON.parse(localStorage.getItem("iptv_fav") || "{}") || {}; REC = JSON.parse(localStorage.getItem("iptv_rec") || "{}") || {}; } catch (_) {}
+const hk = () => S.base + "|" + S.mode;
+const isFav = id => (FAV[hk()] || []).includes(String(id));
+function updFav() {
+  const on = S.cur != null && isFav(S.cur);
+  $("pfav").textContent = on ? "★" : "☆"; $("pfav").classList.toggle("on", on);
+}
+function toggleFav(id) {
+  id = String(id);
+  const k = hk(), a = FAV[k] || (FAV[k] = []), i = a.indexOf(id);
+  if (i >= 0) a.splice(i, 1); else a.unshift(id);
+  try { localStorage.setItem("iptv_fav", JSON.stringify(FAV)); } catch (_) {}
+  updFav();
+  if (S.cat === "__fav" && !S.view) { const y = $("list").scrollTop; render(); $("list").scrollTop = y; }
+  else document.querySelectorAll("#list .fav").forEach(b => {
+    if (b.dataset.fid === id) { const on = isFav(id); b.classList.toggle("on", on); b.textContent = on ? "★" : "☆"; }
+  });
+}
+function addRec(id) {
+  const k = hk(), a = (REC[k] || []).filter(x => x !== String(id));
+  a.unshift(String(id)); REC[k] = a.slice(0, 40);
+  try { localStorage.setItem("iptv_rec", JSON.stringify(REC)); } catch (_) {}
+}
+
+let PG = {items: [], n: 0, c: null, favs: new Set()};
+function itemHtml(i, c, favs) {
+  const prov = i[c.img] || "", alt = S.mode === "live" ? logoFor(i.name) : "", src = prov || alt, fid = String(i[c.id]), on = favs.has(fid);
+  return `<div class="itm"><button class="ch" data-id="${esc(i[c.id])}" data-ext="${esc(i.container_extension || "mp4")}" data-name="${esc(i.name)}" data-epg="${esc(i.epg_channel_id || "")}">
+      <span class="lg"><i>${esc(ini(i.name))}</i>${src ? `<img src="${esc(src)}" data-alt="${esc(prov ? alt : "")}" alt="" loading="lazy" referrerpolicy="no-referrer" onload="this.style.opacity=1" onerror="logoFail(this)">` : ""}</span>
+      <span>${esc(i.name)}</span></button><button class="fav${on ? " on" : ""}" data-fid="${esc(fid)}" aria-label="Favorito">${on ? "★" : "☆"}</button></div>`;
+}
+function morePage(fill) {
+  const l = $("list"); let g = 0;
+  do {
+    if (PG.n >= PG.items.length) break;
+    const chunk = PG.items.slice(PG.n, PG.n + 60); PG.n += chunk.length;
+    l.insertAdjacentHTML("beforeend", chunk.map(i => itemHtml(i, PG.c, PG.favs)).join(""));
+  } while (fill && ++g < 20 && l.scrollHeight <= l.clientHeight + 200 && PG.n < PG.items.length);
+}
+$("list").addEventListener("scroll", () => {
+  const l = $("list");
+  if (!S.view && PG.n < PG.items.length && l.scrollTop + l.clientHeight >= l.scrollHeight - 500) morePage(false);
+}, {passive: true});
+function render() {
+  S.epIdx = null; S.view = null;
+  $("tools").classList.remove("hidden");
+  const grid = S.mode !== "live" && (VIEW[S.mode] || "grid") === "grid";
+  $("list").classList.toggle("pgrid", grid);
+  $("vtog").classList.toggle("hidden", S.mode === "live");
+  $("vtog").textContent = grid ? "☰" : "▦";
+  const d = S.D[S.mode], c = CFG[S.mode], cat = S.cat, q = $("q").value.toLowerCase(), k = hk();
+  const okq = i => (i._l || (i._l = String(i.name).toLowerCase())).includes(q);
+  let items;
+  if (cat === "__fav" || cat === "__rec") items = ((cat === "__fav" ? FAV[k] : REC[k]) || []).map(id => d.byId.get(id)).filter(Boolean).filter(okq);
+  else items = d.items.filter(i => (!cat || String(i.category_id) === cat) && okq(i));
+  PG = {items, n: 0, c, favs: new Set(FAV[k] || [])};
+  const l = $("list"); l.scrollTop = 0;
+  if (!items.length) {
+    l.innerHTML = `<p class="note">${cat === "__fav" ? "Nenhum favorito ainda. Toque na ☆ ao lado de um item para adicionar." : cat === "__rec" ? "Nada assistido ainda." : "Nada encontrado."}</p>`;
+    return;
+  }
+  l.innerHTML = ""; morePage(true);
+}
+function backToList() {
+  const k = S.keep; S.keep = null;
+  render();
+  if (k) { let g = 0; while (PG.n < k.n && PG.n < PG.items.length && g++ < 50) morePage(false); $("list").scrollTop = k.y; }
+}
+$("catlist").onclick = e => {
+  const b = e.target.closest(".cat"); if (!b) return;
+  document.querySelectorAll(".cat.on").forEach(x => x.classList.remove("on")); b.classList.add("on");
+  S.cat = b.dataset.c; S.keep = null; $("q").value = ""; render();
+};
+let qT; $("q").oninput = () => { clearTimeout(qT); qT = setTimeout(render, 150); };
+
+function mark(b) {
+  document.querySelectorAll(".ch.on").forEach(x => x.classList.remove("on")); b.classList.add("on");
+}
+
+$("list").onclick = e => {
+  const f = e.target.closest(".fav");
+  if (f) return toggleFav(f.dataset.fid);
+  if (e.target.closest("#retry")) return openSection(S.mode);
+  if (e.target.closest("#dgo")) return playDet();
+  if (e.target.closest("#dfav")) return toggleFavDet();
+  const pl = e.target.closest(".dpl"); if (pl) return pl.classList.toggle("open");
+  const b = e.target.closest(".ch"); if (!b) return;
+  if (b.dataset.back) return backToList();
+  mark(b);
+  const d = b.dataset, im = b.querySelector("img");
+  const logo = im ? im.src : "";
+  ["plogo", "mlogo"].forEach(id => { const el = $(id); el.style.display = logo ? "" : "none"; if (logo) el.src = logo; });
+  const cred = `${encodeURIComponent(S.u)}/${encodeURIComponent(S.p)}`;
+  S.direct = false; S.recon = 0;
+  if (d.url) {
+    S.epIdx = Number(d.i); S.eid = d.eid; S.cur = S.ep.id; addRec(S.cur);
+    S.nextMeta = {k: "ep", id: d.eid, ext: (d.url.match(/\.([a-z0-9]+)$/i) || [])[1] || "mp4", n: d.name, sid: S.ep.id, img: S.ep.img || ""};
+    return play(d.url, d.name, false, "ep:" + d.eid);
+  }
+  if (S.mode === "live") { S.cur = d.id; addRec(d.id); play(`${S.base}/live/${cred}/${d.id}.m3u8`, d.name, true); showEpg(d.id, d.epg, d.name); }
+  else if (S.mode === "vod") showDetails(S.D.vod.byId.get(d.id));
+  else episodes(d.id, d.name, cred, S.D.series.byId.get(d.id));
+};
+
+async function episodes(id, name, cred, it) {
+  const tok = S.etok = {}; if (!S.view) S.keep = {n: PG.n, y: $("list").scrollTop};
+  S.view = "eps"; S.det = null; $("list").classList.remove("pgrid");
+  $("tools").classList.add("hidden");
+  $("list").innerHTML = skel(8);
+  const back = `<button class="ch" data-back="1"><span>‹ Voltar às séries</span></button>`;
+  try {
+    const info = await api("&action=get_series_info&series_id=" + encodeURIComponent(id));
+    if (S.etok !== tok) return;
+    const raw = info && info.episodes ? info.episodes : {}, seasons = {};
+    Object.keys(raw).forEach(k => {
+      (Array.isArray(raw[k]) ? raw[k] : []).forEach(ep => {
+        const n = String(ep.season ?? (Array.isArray(raw) ? Number(k) + 1 : k));
+        (seasons[n] = seasons[n] || []).push(ep);
+      });
+    });
+    const keys = Object.keys(seasons).sort((a, b) => a - b);
+    if (!keys.length) { $("list").innerHTML = back + `<p class="note">Esta série não tem episódios disponíveis.</p>`; return; }
+    const inf = (info && info.info) || {}, bs = it || {name};
+    S.ep = {id, name, cred, seasons, back, img: inf.cover || bs.cover || "",
+      info: infoHtml(bs, inf) + `<div class="dact"><button class="out" id="dfav">${isFav(id) ? "★ Favorito" : "☆ Favoritar"}</button></div>`};
+    showSeason(keys[0]);
+  } catch (e) {
+    $("list").innerHTML = back + `<p class="note">Não foi possível carregar os episódios (${esc(e.message)}).</p>`;
+  }
+}
+function showSeason(n) {
+  const E = S.ep, keys = Object.keys(E.seasons).sort((a, b) => a - b);
+  const eps = E.seasons[n].slice().sort((a, b) => a.episode_num - b.episode_num);
+  $("list").innerHTML = E.back + (E.info || "") +
+    `<div style="padding:0 12px 10px"><select id="sea" aria-label="Temporada">` +
+    keys.map(k => `<option value="${esc(k)}"${k === String(n) ? " selected" : ""}>Temporada ${esc(k)}</option>`).join("") +
+    `</select></div>` +
+    eps.map((ep, i) => {
+      const st = epState(ep.id);
+      return `<button class="ch ep${st.cls ? " " + st.cls : ""}" data-i="${i}" data-eid="${esc(ep.id)}" data-name="${esc(E.name)} - T${esc(n)}E${esc(ep.episode_num)}"
+        data-url="${S.base}/series/${E.cred}/${esc(ep.id)}.${esc(ep.container_extension || "mp4")}">
+        <span>${esc(ep.episode_num)}. ${esc(ep.title || "Episódio")}</span>${st.html}</button>`;
+    }).join("");
+  $("sea").onchange = e => showSeason(e.target.value);
+  const cur = [...document.querySelectorAll("#list .ch[data-eid]")].find(x => x.dataset.eid === String(S.eid));
+  if (cur) cur.classList.add("on");
+}
+
+/* ---------- EPG ---------- */
+function b64(t) {
+  try { return new TextDecoder().decode(Uint8Array.from(atob(t), c => c.charCodeAt(0))); } catch (e) { return t || ""; }
+}
+function xmlTime(x) {
+  const m = /^(\d{4})(\d\d)(\d\d)(\d\d)(\d\d)(\d\d)\s*([+-]\d{4})?/.exec(x || "");
+  if (!m) return 0;
+  const off = m[7] ? m[7].slice(0, 3) + ":" + m[7].slice(3) : "Z";
+  return Date.parse(`${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}${off}`);
+}
+async function shortEpg(id) {
+  const d = await api("&action=get_short_epg&limit=12&stream_id=" + encodeURIComponent(id));
+  return ((d && d.epg_listings) || []).map(e => ({
+    start: +e.start_timestamp ? e.start_timestamp * 1000 : Date.parse(String(e.start).replace(" ", "T")),
+    end: +e.stop_timestamp ? e.stop_timestamp * 1000 : Date.parse(String(e.end).replace(" ", "T")),
+    title: b64(e.title), desc: b64(e.description)
+  })).filter(e => e.end > Date.now());
+}
+/* ---------- logos pela internet (base pública iptv-org; usadas quando o servidor não traz a logo) ---------- */
+const LOGOS = {"1001noites":"~dWA9y2J.png","adessotv":"~KgetM8j.png","agrobrasiltv":"~aNkP7Zd.png","agrocanal":"~5XyopHf.png","agromais":"~sFcOZeo.png","aishtv":"~QChh8Xs.png","allegrowebtv":"~7iSmccE.png","allsports":"~wULpnYR.png","alphachannel":"~c1QqslA.png","amazonsat":"~7rjCS5i.png","animalplanet":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/2018_Animal_Planet_logo.svg/960px-2018_Animal_Planet_logo.svg.png","animalplanetbrasil":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/2018_Animal_Planet_logo.svg/960px-2018_Animal_Planet_logo.svg.png","animestation":"~sqARtaR.png","animetv":"~CFSSTID.png","ararunatv":"~jl39ula.png","aratuon":"~Ht4jCab.png","arte1":"~Ivnk7A6.png","ascametv":"~LFY5pjU.png","assembleialegislativatv":"~0qco3YQ.png","augetv":"https://m.media-amazon.com/images/I/81UMY8nlXHL._SL500_.png","aulaparana":"~7Gm9Xo5.png","autotv":"~FRnE50u.png","awtv":"~2tdMyef.png","axn":"https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/AXN_logo_%282015%29.svg/960px-AXN_logo_%282015%29.svg.png","axnbrazil":"https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/AXN_logo_%282015%29.svg/960px-AXN_logo_%282015%29.svg.png","band":"~1r5T6Pw.png","bandalternativo":"~Xi0H1MR.png","bandamazonas":"~3wmmQm6.png","bandbahia":"~CFuGcIQ.png","bandceara":"~P1p8bqq.png","bandcuritiba":"~SOfcdFf.png","bandinternacional":"https://i.ibb.co/9h6zXDJ/Band-Int.png","bandmais":"~rkE4ie9.png","bandminasgerais":"~hy7abJz.png","bandnews":"https://i.ibb.co/0jVZBFp/u8ya-iw-R-400x400.jpg","bandnewstv":"https://i.ibb.co/0jVZBFp/u8ya-iw-R-400x400.jpg","bandriointerior":"~DppfTej.png","bandrs":"~qgYBM8k.png","bandsaopaulo":"~roCodnj.png","bandspinterior":"~7tcslXc.png","bandsports":"~EuPvzJe.png","bandtriangulo":"~P5pwleC.png","bdctv":"~6ckHV6k.jpeg","bemmaistv":"https://bemmaistv.com.br/wp-content/uploads/2025/08/0LASAmOtt4-150x150.jpg","bemmelhor":"https://www.ubplay.com.br/wp-content/uploads/sites/67/2025/10/capa-site-bemmelhor.png","bemtv":"~ifGQGJx.png","bestbrasil":"~nWqT34Q.png","bigbrotherbrazil":"~wAHSHaX.png","bigbrotherbrasil":"~wAHSHaX.png","bis":"~VUt1lmH.png","blitstv":"~FO4QTRf.jpeg","bmcnews":"~pOUY2Uz.png","bmtv":"~bJ0ODh6.png","brasilmusictelevision":"~bJ0ODh6.png","boasnovas":"~ZqhizdP.png","boasnovasbelem":"~6aCkXl2.png","boavontadetv":"~Ms5tSgu.png","boxkidstv":"https://upload.wikimedia.org/wikipedia/commons/1/18/Boxkidstv.png","br8tv":"https://i.ibb.co/1QZv2q1/Br8-fb-graph.png","cabofriotv":"~mPi6Wp3.png","canal25jundiai":"~7igGMwH.png","canal29":"~ZgiCiuv.png","canal38":"~co7TCWC.png","canaldajuventudecrista":"~OtEV6Z9.png","canaldoboi":"~pVM5MhS.png","canaldocliente":"~l0EtJMu.png","canaldocriador":"~k29So6X.png","canaldointer":"~TQFWEIS.png","canaleducacao":"~OOB7nrS.png","canalfdr":"~7SE4CkE.png","tvopovo":"~7SE4CkE.png","canalfutura":"~LgynEBC.png","canalgov":"~rHPY0Yv.png","canallibras":"~LnWWKzP.png","canalmetropolitanodenoticias":"~G0x4xqa.png","canaloff":"~1biaLgJ.png","canalricos":"~hs2YVJ3.png","canalrural":"~w9R9IIX.png","canalsaude":"~ht4tUOc.png","canalsete":"~0cq0BPp.png","canalstart":"https://storage.googleapis.com/soultv-prod-media/media/brand/Logomarca_CANAL_START_100X100_PNG_CrAzZzP.png","canaltvrio":"~jBRE3BK.png","canaluol":"https://conteudo.imguol.com.br/c/play/logo_canaluol_2024.svg","canalviva":"~uNHu40M.png","viva":"~uNHu40M.png","cartoonitolive":"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Cartoonito_-_Logo_2021.svg/960px-Cartoonito_-_Logo_2021.svg.png","cartoonitolivelatinamerica":"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Cartoonito_-_Logo_2021.svg/960px-Cartoonito_-_Logo_2021.svg.png","cartoonnetworklive":"https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/Cartoon_Network_HD_logo.svg/960px-Cartoon_Network_HD_logo.svg.png","cartoonnetworklive2":"https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/Cartoon_Network_HD_logo.svg/960px-Cartoon_Network_HD_logo.svg.png","cartoonnetworklivelatinamerica":"https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/Cartoon_Network_HD_logo.svg/960px-Cartoon_Network_HD_logo.svg.png","cartoonnetworklivelatinamerica2":"https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/Cartoon_Network_HD_logo.svg/960px-Cartoon_Network_HD_logo.svg.png","catve2":"~qiVfsfB.png","catvefm":"~w89yw36.png","catvemastertv":"~4m7Iazm.png","cazetv":"https://upload.wikimedia.org/wikipedia/en/thumb/6/64/Caz%C3%A9TV_logo.svg/1280px-Caz%C3%A9TV_logo.svg.png","cbnrio":"https://i.ibb.co/dkCfz7B/l7d-Eil-R-400x400.jpg","cbnriodejaneiro":"https://i.ibb.co/dkCfz7B/l7d-Eil-R-400x400.jpg","cbnsp":"https://i.ibb.co/MgPD8sF/5d2ceea1b6df0.png","cbnsaopaulo":"https://i.ibb.co/MgPD8sF/5d2ceea1b6df0.png","centraltv":"~22jXTu4.png","cheftv":"~UYksTee.png","chromatv":"~SnaIMgj.png","cindietv":"https://a.jsrdn.com/hls/23208/cindie-tv/logo_20250225_222520_68.png","cinebrasiltv":"~n4qPuHG.png","cinemax":"~cZWoJWD.png","cinemaxbrasil":"~cZWoJWD.png","cinturaoverde":"https://eswqkrogupaisirwcsys.supabase.co/storage/v1/object/public/mbc-media/canais/1775688612576-u0628igjimf.png","classiquetv":"~rHxcraT.png","classiquetv2":"~FvUHbQm.png","classiquetvwestern":"~rHxcraT.png","climatempo":"~gEdF9A9.png","clubinhofun":"~YTKd8qL.png","baitaconteudo":"~YTKd8qL.png","cnnbrasil":"https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/CNN_Brasil.svg/960px-CNN_Brasil.svg.png","cnnbrasilmoney":"https://upload.wikimedia.org/wikipedia/pt/c/cb/CNN_Brasil_Money.jpg","combate":"~ZPYK5jr.png","combrasil":"~GrjGwKM.png","comedycentralbrasil":"https://comcastadvertising.com/wp-content/uploads/2021/10/Comedy-Central-White.png","comedycentralwebtv":"https://comcastadvertising.com/wp-content/uploads/2021/10/Comedy-Central-White.png","conectamaistv":"~qHwTWlz.png","conectatv":"~qHwTWlz.png","conectvbrasil":"~XN6jjMR.png","conexaotv":"~CJ9SPsZ.png","costaverdetv":"~GJnPDHu.png","creucattv":"https://files.catbox.moe/l0yh6k.png","culturafast":"https://eitv6.cdn.broadpeak.io/account351-i1438/channel/53/quadrada_-3-_pequeno-1723832301.png","culturapara":"~5jPEI5c.png","curta":"~Rwrh0zU.png","cwbtv":"~S0ISpmU.png","damasioeducacional1":"~wkXtUKV.png","damasioeducacional10":"~XqY3MwX.png","demaistv":"~Md3xibE.png","despertartv":"https://res.cloudinary.com/dpkehkbpv/image/upload/v1721839192/logo/mixtv/despertar_tv_ieb2l3.png","diatv":"https://upload.wikimedia.org/wikipedia/commons/9/91/DiaTV_2024.png","discoverycivilization":"~41eTvi8.png","discoverykidslive":"~C0VEHXU.png","discoverykidslivelatinamerica":"~C0VEHXU.png","discoverytheater":"~T07gvEb.png","disneychannel":"https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Disney_channel_2019.png/960px-Disney_channel_2019.png","disneychannelbrasil":"https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Disney_channel_2019.png/960px-Disney_channel_2019.png","dtcomsat1":"~MVEO84c.png","dtcomsat2":"~TpTwaCu.png","dumdum":"https://upload.wikimedia.org/wikipedia/commons/c/c0/DumDum_logo.svg","dunastv":"~0Qe20y5.png","elementalchannel":"~8upyApg.png","elytv":"~1eHNe91.png","eptvcampinaseregiao":"~6XWRnNX.png","zyb859":"~6XWRnNX.png","eptvcentral":"~7cXoJDO.png","zyb870":"~7cXoJDO.png","eptvsuldeminas":"~fdJCLXo.png","zya732":"~fdJCLXo.png","espn":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/ESPN_wordmark.svg/960px-ESPN_wordmark.svg.png","espnbrasil":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/ESPN_wordmark.svg/960px-ESPN_wordmark.svg.png","espn3":"https://upload.wikimedia.org/wikipedia/commons/thumb/5/51/ESPN3_Logo.png/960px-ESPN3_Logo.png","espn3brasil":"https://upload.wikimedia.org/wikipedia/commons/thumb/5/51/ESPN3_Logo.png/960px-ESPN3_Logo.png","espn4":"https://upload.wikimedia.org/wikipedia/commons/thumb/7/78/ESPN_4_logo.svg/960px-ESPN_4_logo.svg.png","espn4brasil":"https://upload.wikimedia.org/wikipedia/commons/thumb/7/78/ESPN_4_logo.svg/960px-ESPN_4_logo.svg.png","espnextra":"~L7feQkn.png","espnextrabrasil":"~L7feQkn.png","estudeemcasa":"~BPRAffK.png","eutv":"~8PxpamC.png","falalitoral":"~NF6PL8O.png","fashiontv":"~cZWKyuM.png","fishtv":"https://www.fishtv.com/public/site/images/logos/fishtv.svg","fontetv":"~7q2BmNc.png","foratediotv":"~R9ul4T1.png","foxboxweb":"https://i.ibb.co/3yNbP9hg/Captura-de-tela-2026-05-07-183916-removebg-preview.png","foxsports":"~xO5JwDQ.png","foxsportsbrasil":"~xO5JwDQ.png","foxsports2":"~VbPBoYF.png","foxsports2brasil":"~VbPBoYF.png","futura":"https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Canal_Futura.png/960px-Canal_Futura.png","gazetafm941":"https://play-lh.googleusercontent.com/DdyaclD5wuqPe5jROtQEHG7pnl7evtBCYJ-GNt7Fo-swW_k94ZBqTDWoW5a7SYWzu9o2=w240-h480-rw","geekdot":"~jML1u4O.png","anitv":"~jML1u4O.png","gefast":"https://i.ibb.co/WGXHDnF/logo-ge-fast.png","globoesportefast":"https://i.ibb.co/WGXHDnF/logo-ge-fast.png","ghosttv":"~ZVO8GVI.png","girotvnews":"~mc4sFiK.png","globonews":"~3yZyaCm.png","globoplaynovelas":"https://i.ibb.co/m5TBCDL2/Globoplay-Novelas-1.png","gloob":"~N1BUULh.png","gloobinho":"~UWkHErt.png","gloobweb":"https://i.ibb.co/wrQZXZ01/C-pia-de-Blue-Modern-Simple-Logo.png","gnt":"~XymcvMy.png","gospelcartoon":"~yxjPno5.png","gospelmovietv":"~cQN3nWt.png","guiadecanais":"~wOIbW9I.png","gullibrasil":"~AH4T9pr.png","hbo":"https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/HBO_logo.svg/960px-HBO_logo.svg.png","hbobrasil":"https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/HBO_logo.svg/960px-HBO_logo.svg.png","hbo2":"https://upload.wikimedia.org/wikipedia/commons/thumb/6/6c/HBO2_logo.svg/960px-HBO2_logo.svg.png","hbo2brasil":"https://upload.wikimedia.org/wikipedia/commons/thumb/6/6c/HBO2_logo.svg/960px-HBO2_logo.svg.png","hbofamily":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/HBO_Family.svg/960px-HBO_Family.svg.png","hbofamilybrasil":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/HBO_Family.svg/960px-HBO_Family.svg.png","hbomundi":"https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/HBO_Mundi.svg/960px-HBO_Mundi.svg.png","hbopop":"https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/HBO_Pop.svg/960px-HBO_Pop.svg.png","hbopopbrasil":"https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/HBO_Pop.svg/960px-HBO_Pop.svg.png","hbosignature":"https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/HBO_Signature.svg/960px-HBO_Signature.svg.png","hboxtreme":"https://www.vertvcable.com/wp-content/uploads/2022/02/hboextreme.jpg","hellotv":"~MY8BQ3q.png","history":"https://upload.wikimedia.org/wikipedia/commons/thumb/0/01/History_%282021%29.svg/500px-History_%282021%29.svg.png","historybrasil":"https://upload.wikimedia.org/wikipedia/commons/thumb/0/01/History_%282021%29.svg/500px-History_%282021%29.svg.png","idealtv":"~djoI9vz.png","igrejacristamaranata":"~kxYZcx7.png","igrejainternacionaldagracadedeus":"~4ukAkzD.png","impdtv":"~23m7LHH.png","impdtvafrica":"~SSuV6GB.png","impdtvworldwide":"~9dW3AUQ.png","imperialtv":"~Bj0OqOc.png","intertvaltolitoral":"~sLWYMEt.png","intertvcabugi":"~LP1tlVV.png","channel11":"~LP1tlVV.png","intertvcostabranca":"~Y9wpinC.png","intertvgrandeminas":"~Z8Osi1Z.png","intertvserramar":"~KnikgBV.png","intertvvalesdeminasgerais":"~yTfXcmW.png","intratectv":"https://setor6.network/logo.png","investigationdiscovery":"https://upload.wikimedia.org/wikipedia/commons/thumb/3/35/InvestigationDiscoveryLogo2020.svg/960px-InvestigationDiscoveryLogo2020.svg.png","investigacaodiscovery":"https://upload.wikimedia.org/wikipedia/commons/thumb/3/35/InvestigationDiscoveryLogo2020.svg/960px-InvestigationDiscoveryLogo2020.svg.png","istv":"~RUKVrOH.png","itvbrazil":"~35SLBz0.png","j3newstv":"~lezIQyL.png","3viatv":"~lezIQyL.png","terceiraviatv":"~lezIQyL.png","jeannieeumgenio":"~E5mfnP7.png","jockeyclubdesaopaulo":"~HkuWqbn.png","jovempannews":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/Jovem_Pan_logo_2018.svg/960px-Jovem_Pan_logo_2018.svg.png","jpnews":"~AYO1U1u.png","kpoptvplay":"~Tf0vweF.png","laboraltv":"https://tv.laboralsst.com.br/logo.png","labtv":"https://tv.laboralsst.com.br/logo.png","lamorerockshowwebtv":"https://www.lamorerockshowwebtv.com.br/wp-content/uploads/2024/11/logo_rockshow.avif","lavrascetv":"~y0LSin2.png","lidertv":"https://i0.wp.com/lidertv.com.br/wp-content/uploads/2024/11/cropped-cropped-LOGO-LIDER-EM-BAIXA.png?fit=512%2C228&ssl=1","lke":"~chHsCzB.png","loading":"~R0aflu1.png","loupe":"~T6tsw0O.png","maisnatela":"~9MtbKve.png","mastershowtv":"~haXHFCT.png","mbcbrasiltv":"https://eswqkrogupaisirwcsys.supabase.co/storage/v1/object/public/mbc-media/canais/1775702325773-d10vtu076za.png","medalhaopersa":"~lGFTdSS.png","megapix":"~qTYv5jt.png","mirantenews":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQJlZsU7RO0CW_K26uBc0oylslaONHeMXumdw&s","mixtv":"~GKwRMHR.png","mkkwebtv":"~A8Yhtid.png","modoviagem":"https://upload.wikimedia.org/wikipedia/commons/f/ff/Logotipo_do_Modo_Viagem.svg","mtv":"https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/MTV_2021_%28brand_version%29.svg/960px-MTV_2021_%28brand_version%29.svg.png","multishow":"~bqVg8nT.png","musicboxbrazil":"~CDPCF2X.png","mytimemovienetwork":"~aiGQtzI.png","nationalgeographic":"https://upload.wikimedia.org/wikipedia/commons/thumb/f/fc/Natgeologo.svg/960px-Natgeologo.svg.png","nationalgeographicbrasil":"https://upload.wikimedia.org/wikipedia/commons/thumb/f/fc/Natgeologo.svg/960px-Natgeologo.svg.png","nationalgeographicwild":"~C0stYcu.png","naturetv":"~g7pLORX.png","ndtvrecordtvcriciuma":"~wskp11q.png","nickelodeon":"https://static.wikia.nocookie.net/nickelodeon/images/7/7e/2023_Nick_3D.png","nick":"https://static.wikia.nocookie.net/nickelodeon/images/7/7e/2023_Nick_3D.png","nickjr":"https://upload.wikimedia.org/wikipedia/commons/e/e0/Nick_Jr._logo_2023.svg","nickonline":"https://x1colegal.com/logo.png","nickelodeononline":"https://x1colegal.com/logo.png","nickonlinebobesponja":"https://x1colegal.com/nickonlinebobesponja.png","nickonlinejr":"https://x1co.com.br/logojunior.png","nickonlinejunior":"https://x1co.com.br/logojunior.png","nickonlinemusic":"https://x1co.com.br/musiclogo.png","nickmusiconline":"https://x1co.com.br/musiclogo.png","nickonlineslime":"https://x1colegal.com/slimelogo.png","nickonlinespongebob":"https://x1co.com.br/logobob.png","nickelodeononlinespongebob":"https://x1co.com.br/logobob.png","nicktoonsbrasil":"https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/Nicktoons_logo_%282023%29.svg/330px-Nicktoons_logo_%282023%29.svg.png","ntoonswebtv":"https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/Nicktoons_logo_%282023%29.svg/330px-Nicktoons_logo_%282023%29.svg.png","nickweb":"https://i.ibb.co/TxV7nwLw/20260420-172534.png","nickelodeonweb":"https://i.ibb.co/TxV7nwLw/20260420-172534.png","novaeratv":"~IK3F9Uq.png","novatvagrotour":"~cgN2hfm.png","nsctv":"https://upload.wikimedia.org/wikipedia/commons/8/8f/NSC_TV_logo.png","nsctvblumenau":"~AebFETD.png","zyb760":"~AebFETD.png","nsctvcentrooeste":"~dLGpoVz.png","zyb770":"~dLGpoVz.png","nsctvchapeco":"~InuwvjC.png","zyq651":"~InuwvjC.png","nsctvcriciuma":"~gp3UISe.png","zyb762":"~gp3UISe.png","nsctvflorianopolis":"~0DtNyF1.png","zyb763":"~0DtNyF1.png","nsctvjoinville":"~G66BZyd.png","nsports":"~7QnJojr.png","ntv":"~n79nkVC.png","nossatv":"~n79nkVC.png","ocaminhoantigo":"~knUFbk9.png","odiatv":"~1LUbAVP.png","oesctv":"~vnukY7x.png","oifilmes":"~ypUhjBD.png","opiniaoplaytv":"~67jQYZ5.png","paramountapresenta":"~XrJw9eQ.png","peruchannel":"~01KEiEp.png","petloverstv":"https://petloverstv.com.br/storage/357/config/yqP4nOugWRxRFCmgLqXF4gRKyM9ybsAOfHgUaqPt.png","pfc":"~zgxPcrc.png","pfcinternacional":"~VniZc15.png","playtv":"~Ikrj3lk.png","plenatv":"~lH4RT7b.png","maisum":"https://i.ibb.co/ZRDvqJcf/Logo-Mais-Um-original-sem-fundo.png","sbtnovelas":"https://upload.wikimedia.org/wikipedia/pt/thumb/6/60/%2BSBT_2024.svg/960px-%2BSBT_2024.svg.png","polishop":"~gnfxeio.png","polishop2":"~HFDhW9S.png","portalcultura":"~s0kIlmM.png","premiere10":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Premiere_(2017)_logo.png/960px-Premiere_(2017)_logo.png","pfc10":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Premiere_(2017)_logo.png/960px-Premiere_(2017)_logo.png","premierefc10":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Premiere_(2017)_logo.png/960px-Premiere_(2017)_logo.png","premiereclubes":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Premiere_(2017)_logo.png/960px-Premiere_(2017)_logo.png","premierefc1":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Premiere_(2017)_logo.png/960px-Premiere_(2017)_logo.png","premierefc2":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Premiere_(2017)_logo.png/960px-Premiere_(2017)_logo.png","premierefc24h":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Premiere_(2017)_logo.png/960px-Premiere_(2017)_logo.png","premierefc3":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Premiere_(2017)_logo.png/960px-Premiere_(2017)_logo.png","premierefc4":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Premiere_(2017)_logo.png/960px-Premiere_(2017)_logo.png","premierefc5":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Premiere_(2017)_logo.png/960px-Premiere_(2017)_logo.png","premierefc6":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Premiere_(2017)_logo.png/960px-Premiere_(2017)_logo.png","premierefc7":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Premiere_(2017)_logo.png/960px-Premiere_(2017)_logo.png","premierefc8":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Premiere_(2017)_logo.png/960px-Premiere_(2017)_logo.png","premierefc9":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Premiere_(2017)_logo.png/960px-Premiere_(2017)_logo.png","primeboxbrazil":"~BMqSDNn.png","primertv":"~PMptSP3.png","puctvgoias":"~P888e3i.png","racerbrasil":"~4eaKYJu.png","rbatv":"~ZWFxlU1.png","rbitv":"~T1wU2HU.png","rbstvcaxiasdosul":"~sT5iv5g.png","rbstvpelotas":"~f8iktPt.png","rbstvportoalegre":"~912IgbT.png","rbstvrs":"~bPJgtCg.png","rbstvsantamaria":"~Dcu6Nd7.png","rbtv":"~m7JDxXJ.png","rctvbrasil":"https://eswqkrogupaisirwcsys.supabase.co/storage/v1/object/public/mbc-media/canais/1776378749826-jef0fj1ekwq.png","rdctv":"~vMpiSwG.png","rdtv":"~7ng6acg.png","receitasfast":"~hhopxq8.png","record":"~sz9gTTr.png","recordtv":"~sz9gTTr.png","rederecord":"~sz9gTTr.png","tvrecord":"~sz9gTTr.png","recordinteriorrj":"~5ae2rQr.png","recordtvinteriorrj":"~5ae2rQr.png","recordnortefluminense":"~5ae2rQr.png","rederecordnortefluminense":"~5ae2rQr.png","tvnortefluminense":"~5ae2rQr.png","recordnews":"~HZDRG0K.png","recordrs":"~JLQWoNc.png","recordtvrs":"~JLQWoNc.png","recordriograndedosul":"~JLQWoNc.png","rederecordriograndedosul":"~JLQWoNc.png","recordtvamericas":"~T2myIAG.png","recordtvbelem":"~gEEiN10.png","recordtvbrasilia":"~PZMas8Y.png","recordtvcabralia":"https://upload.wikimedia.org/wikipedia/pt/thumb/2/25/RecordCabralia.jpg/500px-RecordCabralia.jpg","recordtvgoias":"~Fdoax1M.png","recordtvinteriorsp":"~VcHy0fu.png","recordtvitapoan":"https://upload.wikimedia.org/wikipedia/pt/thumb/1/13/Logotipo_da_RecordTV_Itapoan.png/500px-Logotipo_da_RecordTV_Itapoan.png","recordtvlitoralevale":"~8xH18bB.png","recordtvmanaus":"~zb58Mel.png","recordtvminas":"~6HT6QMV.png","recordtvpaulista":"https://upload.wikimedia.org/wikipedia/pt/thumb/2/20/Logotipo_da_RecordTV_Paulista.png/500px-Logotipo_da_RecordTV_Paulista.png","recordtvrio":"https://upload.wikimedia.org/wikipedia/pt/thumb/c/ce/Logotipo_da_RecordTV_Rio.png/500px-Logotipo_da_RecordTV_Rio.png","recordtvriopreto":"~ByTPYIF.png","recordtvsaopaulo":"https://upload.wikimedia.org/wikipedia/pt/thumb/1/10/Logotipo_da_Record.png/960px-Logotipo_da_Record.png","rede21":"~ZddcZww.png","redeamazonica":"~EjGPuLp.png","redeamazonicaariquemes":"~AYMXUBj.png","redeamazonicajiparana":"~8Ci6kGj.png","redeamazonicamanaus":"~gQlABHP.png","redeamerica":"~eSZYnNX.png","redebrasil":"~TXJKwzZ.png","redebrasildecomunicacao":"~iiJufN2.png","redecaxias":"~zqiOQJ1.png","redeclube":"~YTCFxJw.png","redecntbelem":"~T7qn7uu.png","redecntcuiaba":"~B8e1Uyx.png","redecntcuritiba":"~jcasAmw.png","redecntlondrina":"~jcasAmw.png","redecntmanaus":"~jcasAmw.png","redecntportoalegre":"~jcasAmw.png","redecntriobranco":"~jcasAmw.png","redecntriodejaneiro":"~jcasAmw.png","redecntsalvador":"~jcasAmw.png","redecntsaopaulo":"~jcasAmw.png","redefamilia":"~7KVFCrQ.png","redegenesis":"~OIkpWMl.png","redeglobo":"~O02TF2r.png","redegospel":"~mttSwgO.png","redeinternacionaldetv":"~i2psU4x.png","redemais":"~JSiZG2B.png","redemanchete":"https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/Manchete_M_logo.svg/960px-Manchete_M_logo.svg.png","redemaoamiga":"~cqD6DNY.png","redemassa":"~yFRqXIx.png","redemeionorte":"~KVdTi0M.png","redemetropole":"~qJx9Zvd.png","redeminas":"~MtQWAHv.png","redemundotv":"~2dsnTGd.png","mundotv":"~2dsnTGd.png","redengt":"~ZFN1R4B.png","redepremiumtv":"~jMHaHAR.png","redeqdm":"~Lxqb2cU.png","rederc":"~y9dqo3f.png","redeseculo21educa":"~j2tkUyy.png","redesptv":"~kh3LGAP.png","redesul":"~eUM67rj.png","redesuper":"~X75qTEm.png","redetupi":"~owK7PUK.png","redetv":"~ZJgD38F.png","redetvalternativo":"~0uVAcAJ.png","redetves":"~k7vO9Bk.png","redetvmais":"https://i.ibb.co/F0Tm2WP/2103f4c07b851d64b4c96955765a9a95.png","redetvnacional":"~0MQP5Ek.png","redetvparana":"~D8R0Af4.png","redetvrondonia":"~eQ0UhYw.png","redetvtocantins":"~SEe2ki7.png","redeutv":"~Usw2e9d.png","redevida":"~mP1qfp2.png","redevidaeducacao":"~LAVxE4T.png","redevidaeducacao2":"~pzmVqlA.png","redewebtv":"~C1wZa7x.png","residenciasaude":"~PVMqN50.png","retrocartoon":"~hIlEfhl.png","riotvcamara":"~smSp1f7.jpg","ritnoticias":"~fiTaCSx.png","rittv":"~Unjs1wi.png","redeinternacionaldetelevisao":"~Unjs1wi.png","rpctv":"~Qb5Wfsi.png","rpctvcuritiba":"~qdVFjKz.png","rpctvfozdoiguacu":"~pBJOLAj.png","rpctvmaringa":"~cY67xOU.png","rpctvparanavai":"~dVJAWOS.png","rpctvpontagrossa":"~lqWkJSu.png","santaceciliatv":"~KxYsq1d.png","sbtcuiaba":"~EZJWQ3i.png","sbtmatogrosso":"~EZJWQ3i.png","sbtinterior":"~IkZfa4j.png","sbtinternacionalamerica":"~ECPs1ev.png","sbtkids":"https://upload.wikimedia.org/wikipedia/pt/1/19/SBTKids2026.png","sbtms":"~VGcNcO8.png","sbtnacional":"~tc1ALuu.png","sbtnews":"https://upload.wikimedia.org/wikipedia/commons/4/42/SBT_News_2025.svg","sbtnovamutum":"https://upload.wikimedia.org/wikipedia/pt/d/d0/Logotipo_do_SBT_Nova_Mutum.png","tvarinos":"https://upload.wikimedia.org/wikipedia/pt/d/d0/Logotipo_do_SBT_Nova_Mutum.png","sbtpara":"~iV1Ib7L.png","sbtrio":"~WLSauIE.png","sbtriogrande":"~it5aFKM.png","sbtrondonopolis":"https://upload.wikimedia.org/wikipedia/pt/d/d5/Logotipo_do_SBT_Rondon%C3%B3polis.png","tvrondon":"https://upload.wikimedia.org/wikipedia/pt/d/d5/Logotipo_do_SBT_Rondon%C3%B3polis.png","sbtsinop":"https://upload.wikimedia.org/wikipedia/pt/8/8b/Logotipo_do_SBT_Sinop.png","tvcidade":"https://upload.wikimedia.org/wikipedia/pt/8/8b/Logotipo_do_SBT_Sinop.png","seriesclassic":"https://storage.googleapis.com/soultv-prod-media/media/img/mobile/featured/bg_mobile.jpg","sertaotv":"~b5xOCsC.png","sesctv":"~Mu8O6CV.png","shoptime":"~wcsIaWu.png","showdafe":"~JNsiGoq.png","showdomilhao":"https://upload.wikimedia.org/wikipedia/pt/b/b2/Show_do_Milh%C3%A3o_Logo_2024.webp","sictv":"~mHxQyB2.png","smithsonianchannel":"https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/SmithsonianChannellogo.png/960px-SmithsonianChannellogo.png","sonychannel":"https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/Sony_Channel_Logo.png/960px-Sony_Channel_Logo.png","sonymovies":"https://upload.wikimedia.org/wikipedia/commons/thumb/9/9b/Sony_Movies_Logo.svg/500px-Sony_Movies_Logo.svg.png","sosespiritual":"~lGQ7hDD.png","soutv":"https://i.ibb.co/8cKmCNm/ezgif-com-gif-maker.png","sportv":"https://i.postimg.cc/gr9x3z71/Spor-TV-2021.png","sportv2":"~pBiUnb2.png","sportv2alternativo":"~aoMlRgP.png","sportv3":"~mWOR8pi.png","sportvalternativo":"~8M5dLEb.png","srtvpb":"~72Htk9P.png","starchannel":"https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/Star_Channel_2020.svg/960px-Star_Channel_2020.svg.png","stztv":"~SeF2I7q.png","superflixtv":"~lvUbMen.png","supermix":"~o9JZguh.png","megatv":"~o9JZguh.png","tabelaconmeboltv":"~z6KF6sT.png","tcm10":"~aMuMVvB.png","teennick":"~KZq73CE.png","telabrasiltv":"~fbhjltq.png","telaviva":"~vcNo9Vj.png","telecineaction":"~BHYWG0h.png","telecinecult":"~6GuHXnr.png","telecinefun":"~MO2Ynki.png","telecinepipoca":"~hW9JYXr.png","telecinepremium":"~uVFgIr8.png","telecinetouch":"~Nky0hRo.png","teretv":"~vk7q5Gk.png","canal11":"~vk7q5Gk.png","terraviva":"~wnYsE3O.png","thesuperstation":"~BxIwWGQ.png","supercanal":"~BxIwWGQ.png","tiktokradiobrasil":"https://static.wikia.nocookie.net/logopedia/images/f/f4/TikTok_Radio.svg","timesbrasil":"https://upload.wikimedia.org/wikipedia/commons/b/bc/Times_Brasil_CNBC_logo_2025.svg","tntsports":"https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/TNT_Sports_2021_logo.svg/960px-TNT_Sports_2021_logo.svg.png","tntsportsbrasil":"https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/TNT_Sports_2021_logo.svg/960px-TNT_Sports_2021_logo.svg.png","tntsports2":"~E6pLvOV.png","tntsports2brasil":"~E6pLvOV.png","tntsports3":"~LFSMbpN.png","tntsports3brasil":"~LFSMbpN.png","tntsports4":"~Am70nWY.png","tntsports4brasil":"~Am70nWY.png","tntsports5":"~XA3zxEE.png","tntsports5brasil":"~XA3zxEE.png","travelboxbrazil":"~3tBJERH.png","tripbrasilchannel":"~Aa7IbjR.png","trutv":"https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/TruTV_2014.svg/960px-TruTV_2014.svg.png","tv3curitiba":"https://eswqkrogupaisirwcsys.supabase.co/storage/v1/object/public/mbc-media/canais/1776133208960-o2l2f7f02f.png","tva7plus":"~qeo2oPM.png","tvaberta":"~SCz53uO.png","tvacre":"~fjzfgcr.png","tvacritica":"~j51rBro.png","tvadorar":"https://storage.googleapis.com/soultv-prod-media/media/brand/Logo_Adorar_100x100_s5tW1gW.png","tvafolha":"~I7XGMhj.png","tval":"~lg94u75.png","tvalagonet":"~Bpmqjmo.png","tvalba":"https://www.al.ba.gov.br/images/shared/logo.png","tvaldeia":"~rsfnv4Z.png","tvalerj":"~7e9t4CY.png","tvalesp":"~snKVK5B.png","tvaliancacatarinense":"~eqmOhtP.png","tvallamanda":"~oamW46Y.png","tvalmg":"~YOuCxKa.png","tvalternativa":"~wM9xXhc.png","tvalterosacentrooeste":"~jGDNnKn.png","tvalterosainterior":"~rbDDnFn.png","tvaltiora":"https://spaceks.net/sites/tvaltiora.com/images/logo/logo_1682882999.png","tvalvorada":"~wzx7TsO.png","tvamapa":"~gw5BL3D.png","tvanhangueragoiania":"~kSfg6Zb.png","tvantena10":"~M4X95Uc.png","tvaparecida":"~kxrja0X.png","tvaplateia":"~pmimCFs.png","tvaracati":"~0CZn8cC.png","tvarapuan":"~3395A2h.png","tvaratu":"~LCETtuk.png","tvasabranca":"~v7fXXOK.png","tvassembleiaceara":"~UPa1tjs.png","tvassembleiamatogrosso":"~BtkX8kg.png","tvassembleiaminasgerais":"~Q1lo8SG.png","tvassembleiaparana":"~3jo4Wfd.png","tvassembleiapiaui":"~eMguSjM.png","tvassembleiarn":"https://yt3.googleusercontent.com/ytc/AGIKgqOClirOgkUdn6sr0KXxp98HAAVFagI9NteXQvD6=s176-c-k-c0x00ffffff-no-rj","tvatalaia":"~9qp6rMK.png","tvbahia":"~sJOrvHg.png","tvbarrigaverde":"~nkcHHf2.png","tvbejoinville":"~zUpWcUN.png","tvbeltrao":"~JxsyXCD.png","tvbirigui":"~z7VlNLR.png","tvbno":"~ZvaW1Oz.png","tvboqueirao":"~1XrArrG.png","tvb":"~1XrArrG.png","tvbrasil":"https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/TvBrasil2023.png/960px-TvBrasil2023.png","tvbrasil2":"~Lnsei35.png","tvbrasilcentral":"~VgjVlp3.png","tvbrasilinternacional":"https://upload.wikimedia.org/wikipedia/pt/e/ee/TV_Brasil_Internacional_2023.png","tvbrasiloeste":"~noqGfuy.png","tvo":"~noqGfuy.png","tvbricsportuguese":"~vLpm8tN.png","tvbrusque":"~J2EAZPS.png","tvcabobranco":"~wcU9doO.png","tvcachoeira":"~BxSjI7X.png","tvcamara":"~Sdou1Ab.png","tvcamara2":"~dHrUG1R.png","tvcamaradesaopaulo":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/Logo_tvcamara_.png/960px-Logo_tvcamara_.png","tvcamaraportoalegre":"~jfQ7mPQ.jpg","camarapoatv":"~jfQ7mPQ.jpg","tvcamarasalvador":"~VEXEzSx.png","tvcancaonova":"~OaM9hkH.png","tvcancaonovacachoeirapaulista":"~wcRWSzc.png","tvcancaonovainternacional":"~t1TmO4J.png","tvcandides":"~evKq5ze.png","tvcapitallucelia":"https://radiocapitalfm777.com/images/415d46e69bdae8276a4cc5cba9cd3d10.jpg","tvcapixaba":"~C20HehI.png","tvcaravelas":"~naVyW1Z.png","tvcarioca":"~mVWydMw.png","tvcariocainternacional":"https://directostv.teleame.com/wp-content/uploads/2017/11/TV-CARIOCA-.NET-ao-vivo-Online.png","tvceara":"~rvQucQg.png","tvcentroamerica":"~h7fSQrw.png","tvcentroamericacuiaba":"~kRmHnnq.png","tvcentroamericarondonopolis":"~XzsefeY.png","tvcentroamericasinop":"~9R8bXcw.png","tvci":"~4GOgIrM.png","tvcidadaalagoas":"~m8J8zhr.png","tvcidadecanal9":"~3AyMeWx.png","tvcidadedepetropolis":"~xUs8gHV.png","tvcidadedesaopaulo":"https://upload.wikimedia.org/wikipedia/pt/thumb/8/88/Logotipo_da_TV_Cidade_de_S%C3%A3o_Paulo.png/960px-Logotipo_da_TV_Cidade_de_S%C3%A3o_Paulo.png","tvcidadefortaleza":"~3t8Zj5u.png","tvcidadelondrina":"~Y7iiEuQ.png","tvcidadeoeste":"~EmYaxEh.png","tvcidadesaoluiz":"~5XyqVYI.png","tvcidadeverde":"~SysgBqZ.png","tvcidadeverdecuiaba":"~e67h04h.png","tvcidadeverdepiaui":"~vjmpQnR.png","tvcinec":"~Svm5pun.png","tvclube":"~CpXjcyE.png","tvcnagitos":"~5gvGC0P.png","tvcommaceio":"~IE7IZzi.png","tvcomsantos":"~KX3fner.png","tvcomunitaria":"~uxefHY3.png","tvcomdf":"~uxefHY3.png","tvcordeiro":"~wNULjux.png","tvcorreio":"~FSnGAaZ.png","tvcrio":"~WDiikWv.png","tvcultura":"https://i.ibb.co/nm0jXMM/cultura-3x.png","tvculturanacional":"https://i.ibb.co/nm0jXMM/cultura-3x.png","cultura":"https://i.ibb.co/nm0jXMM/cultura-3x.png","tvculturadopara":"~CUDzNbG.png","tvculturapaulista":"~m0o2z5F.png","tvcuruca":"~JdCKNZ4.png","tvdasartes":"~fSWaiKt.png","tvdestak":"~YoCVrav.png","tvdiario":"~6ZNP8gs.png","tvdiariomacapa":"~yAW2Z5j.jpg","tvdiariomogidascruzes":"~XQmWoSM.png","tvdifusao":"https://storage.googleapis.com/soultv-prod-media/media/brand/LOGO_TV_DIFUS%C3%83O_100x100px_doiivZN.png","tvdifusoraleste":"~hEd25Cr.png","tvdifusorasaoluis":"~kQpZy8h.png","tvdifusorasul":"~2pASDBC.png","tvdigitalbirigui":"~B5ZTMzY.png","tvdiversa":"~b3hMu5h.png","tvdopovo":"~58EQ5qX.png","tvebahia":"https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/TVE_Bahia_logo.svg/960px-TVE_Bahia_logo.svg.png","tvecultura":"~FpqoWcB.png","tveducacao":"~ynjTNl6.png","tveducacaoma":"~SVto0oe.png","tveducativaes":"~Rw5kjde.png","tvees":"~Rw5kjde.png","tveducativadoespiritosanto":"~Rw5kjde.png","tvejabrasil":"~uhppN3s.png","tvempire":"~tT1NVfV.png","tvemtempo":"~ByYTNPs.png","tvers":"~MQ6lJpS.png","tvescola":"~OF6aGQj.png","tvevangelizar":"~IrYR7Kp.png","tvexecutiva":"~7p115ef.png","tvfronteira":"~NtcoW6G.png","tvfuturo":"~xonrNBf.png","tvgalegablumenau":"~xwfxS9N.png","tvgazeta":"~0sksWse.png","tvgazetaacre":"~aUjv15g.png","tvgazetaalagoas":"~EK4CyZi.png","tvgazetaespiritosanto":"~WF49es2.png","tvgazin":"https://tvgazin.com.br/wp-content/uploads/2024/03/logo.png","tvgerais":"~6qs1obj.png","tvgideoes":"~dDomKND.png","tvglobosaopaulo":"~OoSUg78.png","zyb850":"~OoSUg78.png","redeglobosaopaulo":"~OoSUg78.png","redeglobosp":"~OoSUg78.png","tvglobopaulista":"~OoSUg78.png","tvpaulista":"~OoSUg78.png","zye88":"~OoSUg78.png","tvgoianiaband":"~6o62wCm.png","tvgramado":"~5558bMI.png","tvgrandenatalhdtvbrasil":"~MTuErdw.png","tvgranderio":"~StIEnlp.png","tvgraopara":"~1drg0E9.png","tvguaiba":"https://i.ibb.co/JRy70GnY/Logotipo-da-TV-Gua-ba.png","tv2guaiba":"https://i.ibb.co/JRy70GnY/Logotipo-da-TV-Gua-ba.png","tvguanandi":"~BOIsFYv.png","tvguara":"~8PErNBT.png","tvguarapari":"~eDNzwK0.png","tvhorizonte":"~scZDeg3.png","tvibiapabana":"~4Qzsawz.png","tvideonews":"~vstHOYx.png","tviguacu":"~huQVmra.png","tvilhadosol":"~JuoJ0Jb.png","tvines":"~XaKI8ps.png","tvinforbahia":"~KdNQfza.png","tvintegracao":"~dNOxNOo.png","tvintegracaoaraxa":"~dNOxNOo.png","tvintegracaoituiutaba":"~dNOxNOo.png","tvintegracaozonadamata":"~dNOxNOo.png","tvinterativa":"~cfGueoX.png","tvinterlagos":"~iuQVDpq.jpg","tviracema":"~IzdIiys.png","tvitape":"~XeqcwKe.png","tvjangadeiro":"~woBJeSn.png","tvjapi":"~dnmzIhF.png","tvjornalcaruaru":"~M8NilvY.png","tvjornaldonordeste":"~8JDixEE.png","tvjsid":"~yy8uBPW.png","tvjustica":"~rOQKiMO.png","tvlatinasat":"https://latinasat.com.br/logo.png","tvlatinasatbrasil":"https://latinasat.com.br/logo.png","tvlaverdad":"~I3iMwnY.png","tvleste":"~sqI1Ckw.png","tvliberal":"https://cdn.mitvstatic.com/channels/globo_m.jpg","tvliberdade":"~W6bHHqE.png","tvlifeamerica":"~HZI0ilU.png","tvlitoralrn":"https://upload.wikimedia.org/wikipedia/commons/3/3e/TV_LITORAL_RN.jpg","tvmaanaim":"~PZhdHvf.png","tvmaceio":"~zZ9LEOZ.png","tvmackenzie":"https://upload.wikimedia.org/wikipedia/commons/thumb/f/ff/TV_Mackenzie_logo.svg/960px-TV_Mackenzie_logo.svg.png","tvmaisbrasil":"~CUHZhGc.png","tvmaismarica":"~lgCRX7q.png","tvmanchete":"~Dmk7OsL.png","tvmar":"~mEZtRup.png","tvmarajoara":"~9d9vBN7.png","tvmaster":"~fTgGvNJ.png","tvmaticcomedy":"~l5PBcKN.png","tvmaticcrafts":"~l5PBcKN.png","tvmaticfacebook":"~l5PBcKN.png","tvmaticfight":"~l5PBcKN.png","tvmaticfunny":"~l5PBcKN.png","tvmaticsport":"~l5PBcKN.png","tvmatictiktok":"~l5PBcKN.png","tvmax":"~2Pg0baJ.png","tvmeio":"https://upload.wikimedia.org/wikipedia/pt/1/17/Logotipo_da_TV_Meio.png","tvmetropole":"~bJyjLpg.png","tvmetropolitanario":"~y9J8YN2.png","tvmilagro":"~q8AvY9E.png","tvmirante":"~c9QOoLq.png","tvmirantecocais":"~rhZ5g8P.png","tvmiranteimperatriz":"~l4fIfbu.png","tvmodelo":"https://play-lh.googleusercontent.com/7kD2A0jUqWrVMxd_15RAPt9S0P9pxPMpNEc9dHOSl8Bi0DOMVlQHijXaL7ppUC5F46g","bandcastanhal":"https://play-lh.googleusercontent.com/7kD2A0jUqWrVMxd_15RAPt9S0P9pxPMpNEc9dHOSl8Bi0DOMVlQHijXaL7ppUC5F46g","tvmon":"~Gjan8rl.png","tvmorenacampogrande":"~kXCu3AC.png","tvmorenapontapora":"~AJ0xqPT.png","tvmundomaior":"~aneHeMz.png","tvnaipi":"~rQD3sfP.png","tvnatal":"~wqQmQml.png","tvnazare":"~SWG38K9.png","tvnbn":"~zoHBxn1.png","tvnbrasil":"~XZS13xD.png","tvnovaonda":"~iuPIOcI.png","tvnovaplay":"~MhoHk6I.png","tvnovotempo":"~cnTtf6I.png","novotempo":"~cnTtf6I.png","tvomindare":"~naZZUIT.png","tvosasco":"https://pbs.twimg.com/profile_images/494888941/Logo_400x400.jpg","tvosorionews":"~cmgM4nA.png","tvpadrecicero":"~Y7b29VG.png","tvpaieterno":"~iuoXchN.png","tvpajucara":"~iYiGEBB.png","tvpampa":"~Cnc1Mqo.png","tvpampanorte":"~R7P5tcF.png","tvpantanal":"https://upload.wikimedia.org/wikipedia/commons/5/53/Logotipo_TV_Pantanal.png","tvpantanalms":"~0FOmktl.png","tvparaense":"https://duckduckgo.com/i/e408ea02.png","sbtcastanhal":"https://duckduckgo.com/i/e408ea02.png","tvparanaiba":"~TSJQhG1.png","tvparanaturismo":"~I6pKoBd.png","tvpassofundo":"~QFE6TiV.png","tvpe":"~m8hgqdt.png","tvpetropolis":"https://web2.petropolis.rj.gov.br/imc/film-commission/uploads/profissional/perfil/785b645d9c574b4d88504a85dbd6ef37.png","tvplan":"~U1cYYuy.png","tvplanaltonorte":"~I7VwA4s.png","tvpet":"https://www.tvmaispet.com.br/images/tvpet-logo.png","tvpocos":"~UMPz1vl.png","tvpontadoseixas":"~7QHFC24.png","tvpontanegra":"~Ttl031F.png","tvprecabura":"~yI1nk3G.png","tvprofissao":"~c33suOT.png","tvratimbum":"~JIQwz0w.png","tvreme":"~xnCWpIM.png","tvriogrande":"~nlDNDu3.png","tvriopreto":"~9EqSKLc.png","tvriosul":"~VA2MOK0.png","tvrondonia":"~56EhEkO.png","tvroraima":"~rTIIYPr.png","tvsagres":"~9Obs5Jo.png","tvsandegi":"~vJ6ZQSG.png","tvsantacruz":"~Jyw5BB2.png","tvsaofrancisco":"~bTngyV2.png","tvsaoluis":"https://upload.wikimedia.org/wikipedia/pt/9/97/Logotipo_da_TV_S%C3%A3o_Lu%C3%ADs.png","tvsaoraimundo":"~f34CQIG.png","tvsenado":"~duy6waL.png","tvsergipe":"~Ut9qgoE.png","tvseries":"~Ff5mj0o.png","tvserradourada":"~NU741e5.png","tvsetelagoas":"~Na64Q2M.png","tvshoptime":"https://reclamacoes.net.br/wp-content/uploads/shoptime-reclamacoes-300x200.jpg","tvshoptour":"~VQ15xbU.png","shoptourtv":"~VQ15xbU.png","tvshowfortaleza":"https://static.wixstatic.com/media/9af6b8_e963e864c8fb40d3954f5c1c8cab1b40~mv2.png","tvsimcachoeiro":"~t5oUK3C.png","tvsimcolatina":"~t5oUK3C.png","tvsimsaomateus":"~t5oUK3C.png","tvsolcomunidade":"~5cGnb4r.png","tvsubae":"~2ksc02O.png","tvsucesso":"~3CuAIQ1.png","tvsudoeste":"~uCS1BTC.png","tvsulbahia":"~qM6nMWm.png","tvsuldeminas":"~hPh8cxK.png","tvt":"~5dseJgw.png","tvtapajos":"~Dn9DtIf.png","tvtarobacascavel":"~D3DZtki.png","tvtembauru":"~YRqHzlS.png","tvtemitapetininga":"~9si55RI.png","tvtemplo":"~Pgo7xlx.png","tvterceiroanjo":"~PExKWNv.png","tvthathi":"~w9yKTxE.png","tvthathicampinas":"~HNbMmrX.png","tvtibagi":"~70IZyX9.png","tvtribuna":"~ZUz7aRd.png","tvtribunaband":"~ENX9HWH.png","tvtropical":"~TD6ZJoa.png","tvtudobh":"~5SKSkUQ.png","tvturfe":"~x14uNWZ.png","tvufg":"~Yp3dbJo.png","tvufop":"https://raw.githubusercontent.com/daniloroxette/tvufop/refs/heads/main/images/tvufop_logo.png","tvuniaofortaleza":"~Ec90iw0.png","tvunisantos":"~7YRui41.png","tvunisat":"~x6rVrTt.png","tvuniversal":"~TIsk5zN.png","tvuniversitaria":"https://upload.wikimedia.org/wikipedia/pt/a/a7/Logotipo_da_TV_Universit%C3%A1ria_%28Recife%29.png","tvvaledouruara":"~WgXsfIa.png","tvvanguardasaojosedoscampos":"~dGZw7pf.png","tvvanguardataubate":"~rY0V9gc.png","tvvarezagrande":"https://upload.wikimedia.org/wikipedia/pt/c/ca/Logotipo_da_TV_V%C3%A1rzea_Grande.png","tvvarzeagrande":"https://upload.wikimedia.org/wikipedia/pt/c/ca/Logotipo_da_TV_V%C3%A1rzea_Grande.png","tvverdade":"~FMakyzR.png","tvverdescampos":"~Cf98Tts.png","tvverdescampossat":"~jW5ph72.png","tvverdesmares":"~wwy9HBt.png","tvverdesmarescariri":"~2XpjTi7.png","tvvicosa":"~TZF55f9.png","tvvilareal":"~Z1uWe7g.png","tvvitoria":"https://portalredevitoria.com.br/wp-content/themes/portal-rede-vitoria-tema-2/img/rede-vitoria-logo.png","tvwalterabrahao":"~oyqayMN.png","tvwebcamocim":"~dQN6xcT.png","tvwebparana":"~HRfKUzS.png","tvwest":"~kN7DJxM.png","tvwtjminas":"~e53513E.png","tvzoom":"~jCGrjf5.png","umatv":"~m0RVb79.png","unbtv":"https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Webysther_20160322_-_Logo_UnB_(sem_texto).svg/960px-Webysther_20160322_-_Logo_UnB_(sem_texto).svg.png","uninter1":"~MNCSx0a.png","uninter2":"~DJKNjbl.png","unisa1":"~dyfdLna.png","unisa2":"~qISgdAr.png","unisctv":"~yXujLnM.png","unisultv":"~N0TvAFz.png","unitvportoalegre":"~GmA5uuk.png","univesptv":"~vsfBEhJ.png","upftv":"~PCWS6wJ.png","urbandocs":"~hOSHO1T.png","urbankids":"~bDIeiIH.png","urbanmovies":"~wcjtSkq.png","urbanretro":"~1uyv9vn.png","urbanseries":"~ZZOiT4x.png","urbantravel":"~ST24ALh.png","urbanturbo":"~zsKzLhq.png","urbantv":"~RBcvj3Q.png","vejatv":"~n0pxHo4.png","vh1":"~UdZLSnW.png","viamorenotv":"https://www.viamorena.com/wp-content/uploads/2017/07/logo1.png","virtualtv":"~e1b0TTP.png","vrtchannel":"~crszh3d.png","vtv":"https://www.sbt.com.br/assets/images/stations/logo-afiliada-vtv.png","vv8tv":"~TxHWAeD.png","weatherspy":"~KIEKOt1.png","webtvaguaboa":"~XrFoTDv.png","webtvalternativa":"https://landingwebimg.s3.amazonaws.com/uploads/landing_page_business/logo/30003/image-upload1645141554.jpeg","whamtv":"~MkLIi4d.png","woohoo":"~me622pa.png","wtvbrasil":"~4T8z1Ni.png","xsports":"https://upload.wikimedia.org/wikipedia/commons/3/3f/Xsports_logo.png","xtremetv":"~mF0rLRC.png","yeeaah":"~R22OHnk.png","yeslife":"~sZHYWRm.png","abolatv":"~IP1NWeA.png","adalmadatv":"~AlKQZcZ.jpeg","adbtv":"https://i.ibb.co/HGfTJwt/ADBTV.jpg","advnce":"~TjDIy0N.png","aguedatv":"~MDL0vmo.png","almalusa":"~LnLFf8D.png","amcbreak":"https://static.wikia.nocookie.net/logopedia/images/d/d3/AMC_Break_Print.svg/revision/latest/scale-to-width-down/512","amccrime":"~zTujTRr.png","animax":"https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Animax.png/960px-Animax.png","artv":"~y00t9hr.png","axnmovies":"~tJQckal.png","benficatv":"~l6LACto.png","biggs":"~ANPP7FW.png","bomsomtv":"~pUKZ9ec.png","boomerang":"https://static.wikia.nocookie.net/logopedia/images/4/49/Boomerang_2015.svg","campopequenotv":"~37kKyy1.png","canal180":"~2JgwPmm.jpeg","canalblast":"~ozX1M8W.png","canaldeoracaomana":"~Z05giHV.png","canalhollywood":"https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/HWD_logo.svg/960px-HWD_logo.svg.png","canalnos":"~pTBYiZa.png","canalpanda":"https://upload.wikimedia.org/wikipedia/en/0/08/Canal_Panda_2015.png","canalq":"~OovTKqv.png","canalumeuropa":"~4C9bzpM.png","cartoonito":"~6vYWCD0.png","casaecozinha":"~DMRkYYx.png","cinemundo":"~U4Wd5HO.png","cmtv":"~QFLqg8y.png","cnnportugal":"~bc6tYVZ.png","conectvalgarve":"~dhWE9Gy.jpeg","contala":"~EAoLV35.png","discoverychannel":"https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/2019_Discovery_logo.svg/960px-2019_Discovery_logo.svg.png","disneyjunior":"https://upload.wikimedia.org/wikipedia/commons/e/e3/2024_Disney_Jr._Logo.svg","dstvpipoca":"~QdVVK6a.png","famatv":"https://i.ibb.co/tMmRp18/Fama-TV-cor-whitebg-hotizontal.jpg","fox":"~hSDN9YQ.png","foxcomedy":"~yLZZPPy.png","foxcrime":"~htrPojY.png","foxlife":"~O2miSLA.png","foxmovies":"~dcpMz2f.png","fueltv":"~I8mviBy.png","globo":"https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/Globo_2024.svg/960px-Globo_2024.svg.png","globonow":"~PYTHMEm.png","historia":"~VUy8xIG.png","iestv":"~zYj5pU5.png","kuriakoscine":"~CZViCwB.jpg","kuriakoskids":"~SRX6EPY.png","kuriakosmusic":"~Zl40NYi.jpg","kuriakostv":"~xdAW0D5.png","localvisaotv":"~IxU1pnb.png","manachurchonline":"~FRDJSim.png","manacirkevonline":"~tYhXeRq.png","manaegliseonline":"~xQYly8O.png","manaiglesiaonline":"~0IUvfcJ.png","manaigrejaonline":"~0IUvfcJ.png","manatserkovonlayn":"~PruXLqS.png","morangoscomacucar":"~NRfEs0I.png","newsnow":"~e1S1M6H.png","nortelitoraltv":"https://i.ibb.co/tHxMG7n/Nltv.jpg","nosstudios":"~gVYQmKm.png","novotempoportugal":"~5mSzvXt.png","novumcanal":"~so5tWNe.png","npcradioetv":"~mw1lYWE.png","odisseia":"~zz0Vtty.png","onfm":"https://onfmwordpressfiles.ams3.digitaloceanspaces.com/wp-content/uploads/2023/03/17130121/logo-on-fm.png","pandakids":"~6OP31oP.png","portocanal":"~DwziwMY.png","radioclubedelamego":"https://www.rclamego.com/upload/design/5f68f7d3962619.43822648.png","radioclubetv":"~Rr5MoMX.png","radiosines":"~Oe6F1nL.png","radiotelevisaocrista":"~nqKpNLn.jpeg","recordtveuropa":"~DvxfBTE.png","rfptv":"~I60nQuR.png","rtp1":"https://cdn-images.rtp.pt/common/img/channels/logos/color/horizontal/rtp1_2026.png","rtp2":"https://cdn-images.rtp.pt/common/img/channels/logos/color/horizontal/rtp2_2026.png","rtpacores":"https://cdn-images.rtp.pt/common/img/channels/logos/color/horizontal/rtpacores_2026.png","rtpafrica":"https://cdn-images.rtp.pt/common/img/channels/logos/color/horizontal/rtpafrica_2026.png","rtpmadeira":"https://cdn-images.rtp.pt/common/img/channels/logos/color/horizontal/rtpmadeira_2026.png","rtpmamerica":"https://upload.wikimedia.org/wikipedia/commons/thumb/1/17/RTP_Mundo.svg/1920px-RTP_Mundo.svg.png","rtpmasia":"https://upload.wikimedia.org/wikipedia/commons/thumb/1/17/RTP_Mundo.svg/1920px-RTP_Mundo.svg.png","rtpmemoria":"https://cdn-images.rtp.pt/common/img/channels/logos/color/horizontal/rtpmemoria_2026.png","rtpmundo":"https://upload.wikimedia.org/wikipedia/commons/thumb/1/17/RTP_Mundo.svg/1920px-RTP_Mundo.svg.png","rtpnoticias":"https://cdn-images.rtp.pt/common/img/channels/logos/color/horizontal/rtpnoticias_2026.png","sic":"~SPMqiDG.png","sicaltadefinicao":"~VdPwyQv.png","siccaras":"~di3sIto.png","sicinternacional":"~H0ZiaUd.png","sicinternacionalafrica":"https://i.ibb.co/NZX5zF9/SICAfrica.png","sick":"~ypTCVsB.png","sicmulher":"https://upload.wikimedia.org/wikipedia/en/c/c4/Sicmulher.png","sicnoticias":"~Gi6Q26M.png","sicnovelas":"https://i.ibb.co/5hQrgqd/SICNovelas.png","sicradical":"~6g0obyk.png","sicreplay":"~fj84mXz.png","sportingtv":"~GOlNfTo.png","sporttv1":"~YWic36u.png","sporttv2":"~0jSR6yG.png","sporttv3":"~6Dw3GUx.png","sporttv4":"~mJlbVfW.png","sporttv5":"~4w4vuad.png","sporttv6":"~qmlQkyI.png","sporttv7":"~2HmCAm5.png","sporttvafrica1":"~ZmmgxrB.png","sporttv":"~R5FZEW6.png","starcomedy":"https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Star_Comedy_2024.svg/960px-Star_Comedy_2024.svg.png","starcrime":"https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/Star_Crime_2023.svg/960px-Star_Crime_2023.svg.png","starlife":"https://upload.wikimedia.org/wikipedia/commons/thumb/f/f9/Star_Life_2021.svg/960px-Star_Life_2021.svg.png","starmovies":"https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/Star_Movies_2023.svg/960px-Star_Movies_2023.svg.png","syfy":"~4fMWhUE.png","tlc":"https://upload.wikimedia.org/wikipedia/commons/thumb/7/74/TLC_Logo.svg/960px-TLC_Logo.svg.png","tlnnetwork":"~eG4YYTX.png","tvcineaction":"~fsQ6dMR.png","tvcineedition":"~G2pYTem.png","tvcineemotion":"~5yfDDx3.png","tvcinetop":"~uMmmK0s.png","tvfatima":"~0Nz2GqC.png","tvi":"~H8Tgl7m.png","tviafrica":"https://i.ibb.co/vBbSHB4/Tvi-africa.png","tvificcao":"https://cdn.iol.pt/img/logostvi/branco/tvificcao.png","tviinternacional":"~l1cun8s.png","tvireality":"~C9rxqA5.png","tvmana1":"~6jNqpTP.png","tvmana2":"~VYNjVov.png","tvmanabrasil":"~AFb712e.png","tvmanaenglish":"~I66IkCw.png","tvmanaespanhol":"~sUlrSwP.png","tvmanahindi":"~Rqs2Jyt.png","tvmanarusskiy":"~fACHqmY.png","unifetv":"~0gFp6Xr.png","vintv":"https://static.wikia.nocookie.net/logopedia/images/5/5b/VinTV_Portugal_2026.png","vitecazorestv":"~NaDX3sm.png","vtvi":"https://upload.wikimedia.org/wikipedia/pt/e/ef/V%2BTVI_Logo.png","waytv":"https://i.ibb.co/gdpvKpS/cropped-Asset-1.png","aelatinamerica":"https://upload.wikimedia.org/wikipedia/commons/thumb/d/df/A%26E_Network_logo.svg/960px-A%26E_Network_logo.svg.png","amcliving":"https://i.ibb.co/VRP6BnZ/AMC-Living.png","amcserieslatinamerica":"https://amc-series.s3.amazonaws.com/menu/hbfen1Gom0_k1cyqi7rw4-amc-series-train-w.png","amcwestern":"https://i.ibb.co/Kz3wsFcM/AMC-Western.png","animalplanetlatinamerica":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/2018_Animal_Planet_logo.svg/960px-2018_Animal_Planet_logo.svg.png","axnadria":"https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/AXN_logo_%282015%29.svg/960px-AXN_logo_%282015%29.svg.png","axnblack":"~Peo1QiZ.png","axncee":"https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/AXN_logo_%282015%29.svg/960px-AXN_logo_%282015%29.svg.png","axncrime":"https://static.wikia.nocookie.net/logopedia/images/1/13/AXNCRIME_2026_V_WHITE_VIOLET_RGB_HERO_01.svg/revision/latest?cb=20260808120407","axnlatinamerica":"https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/AXN_logo_%282015%29.svg/960px-AXN_logo_%282015%29.svg.png","axnwhite":"https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/AXN_White_logo_%282015%29.svg/1280px-AXN_White_logo_%282015%29.svg.png","bbcamerica":"https://upload.wikimedia.org/wikipedia/commons/8/86/BBC_America_logo_2021.svg","bloombergquicktake":"~T4HwPUn.png","bloombergtv":"~R7FCaB5.png","cinecanal":"https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/CinecanalLA.png/960px-CinecanalLA.png","cinemaxaction":"https://upload.wikimedia.org/wikipedia/en/thumb/7/78/Cinemax_Action_Logo.png/960px-Cinemax_Action_Logo.png","cinemaxclassics":"https://upload.wikimedia.org/wikipedia/en/thumb/6/66/Cinemax_Classics_Logo.png/960px-Cinemax_Classics_Logo.png","cinemaxhits":"https://i.ibb.co/Kp7m2G19/IMG-2477.png","cinemaxlatino":"https://i.ibb.co/4w27VFFr/IMG-2468.png","comedycentral":"https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Comedy_Central_2018.svg/960px-Comedy_Central_2018.svg.png","comedycentralafrica":"https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Comedy_Central_2018.svg/960px-Comedy_Central_2018.svg.png","comedycentralasia":"https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Comedy_Central_2018.svg/960px-Comedy_Central_2018.svg.png","comedycentrallatinamerica":"https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Comedy_Central_2018.svg/960px-Comedy_Central_2018.svg.png","comedycentralmadeingermany":"~shypLCj.png","comedydynamics":"~1lEvUOa.png","comedymovies":"~BpsDY37.png","comedytv":"~KLfXnba.png","discoverychannellatinamerica":"https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/2019_Discovery_logo.svg/960px-2019_Discovery_logo.svg.png","discoverychannelmiddleeastafrica":"https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/2019_Discovery_logo.svg/960px-2019_Discovery_logo.svg.png","discoverycivilizationlatinamerica":"~FkRWEBQ.png","discoveryenespanol":"https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1d/Discovery_en_Espa%C3%B1ol_%282020%29.svg/960px-Discovery_en_Espa%C3%B1ol_%282020%29.svg.png","discoveryfamilia":"https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/Discovery_Familia_Logo_%282022%29.svg/1920px-Discovery_Familia_Logo_%282022%29.svg.png","discoveryfamily":"https://i.ibb.co/CK3VrYmc/IMG-2812.png","discoveryfamilyafrica":"~MFdHa91.png","discoveryhomehealthlatinamerica":"https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Discovery_H%26H_Logo_2022.webp/960px-Discovery_H%26H_Logo_2022.webp.png","discoverykidslatinamerica":"https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7f/Discovery_Kids_2021_2D_sin_wordmark.svg/960px-Discovery_Kids_2021_2D_sin_wordmark.svg.png","discoverylife":"~ObPFgT8.png","discoveryscience":"https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Discovery_science_new_logo_2017.png/960px-Discovery_science_new_logo_2017.png","discoverysciencelatinamerica":"https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Discovery_science_new_logo_2017.png/960px-Discovery_science_new_logo_2017.png","discoverytheaterlatinamerica":"~AqR0Jkn.png","discoverytourismguyana":"~WULCjJZ.png","discoveryturbo":"https://upload.wikimedia.org/wikipedia/commons/thumb/7/74/Discovery_Turbo_2025.svg/1920px-Discovery_Turbo_2025.svg.png","discoveryturbolatinamerica":"~1pQPxu3.png","discoveryworld":"~yNFmUkE.png","disneychannellatinamerica":"https://upload.wikimedia.org/wikipedia/commons/f/ff/2024_Disney_Channel_text_logo.svg","disneyjrlatinamerica":"https://upload.wikimedia.org/wikipedia/commons/e/e3/2024_Disney_Jr._Logo.svg","espn2":"~00tsvjE.png","espn2caribbean":"https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/ESPN2_logo.svg/960px-ESPN2_logo.svg.png","espn2latinamerica":"https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/ESPN2_logo.svg/960px-ESPN2_logo.svg.png","espn3latinamerica":"https://upload.wikimedia.org/wikipedia/commons/thumb/5/51/ESPN3_Logo.png/960px-ESPN3_Logo.png","espn4latinamerica":"https://upload.wikimedia.org/wikipedia/commons/thumb/7/78/ESPN_4_logo.svg/960px-ESPN_4_logo.svg.png","espn5latinamerica":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/ESPN_wordmark.svg/960px-ESPN_wordmark.svg.png","espn6latinamerica":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/ESPN_wordmark.svg/960px-ESPN_wordmark.svg.png","espn7latinamerica":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/ESPN_wordmark.svg/960px-ESPN_wordmark.svg.png","espn8theocho":"https://images.fubo.tv/channel-config-ui/station-logos/on-dark/espn_8_the_ocho_bw.png","espnbasesloaded":"~SPm7LvH.png","espnbuzzerbeater":"~irmInKR.png","espncaribbean":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/ESPN_wordmark.svg/960px-ESPN_wordmark.svg.png","espnclassic":"~pDpIVpP.png","espncollegeextra1":"~T6Vlevz.png","espncollegeextra2":"~jTrLRdy.png","espncollegeextra3":"~idjVObN.png","espncollegeextra4":"~idjVObN.png","espncollegeextra5":"~idjVObN.png","espncollegeextra6":"~idjVObN.png","espncollegeextra7":"~idjVObN.png","espncollegeextra8":"~idjVObN.png","espndeportes":"https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/ESPN_Deportes.svg/960px-ESPN_Deportes.svg.png","espnews":"https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/ESPNews.svg/960px-ESPNews.svg.png","espnextralatinamerica":"~8P8N2Ov.png","espngoalline":"~KZ2yZE9.png","espnlatinamerica":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/ESPN_wordmark.svg/960px-ESPN_wordmark.svg.png","espnpremium":"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/ESPN_Premium_logo.svg/960px-ESPN_Premium_logo.svg.png","espnu":"~HiBrysh.png","film24h":"~6HX5mwn.png","filmarts":"~ukdmEKD.png","filmco":"~IjUWLYT.png","filmex":"~Hiz2OyC.png","filmexclasico":"~D3dj4mv.png","filmhub":"~MRU0d3y.png","filmriseaction":"https://provider-static.plex.tv/epg/cms/production/1965c90b-04e6-4124-bfc0-7a6226a8f0ab/FilmRise_Action_1500x1000_Light_Logo.png","filmriseclassictv":"https://provider-static.plex.tv/epg/cms/production/028c779c-2a24-4782-a9e4-f66614e170df/FilmRise_ClassicTV_1500x1000_Dark_Logo.png","filmrisefamily":"~8j2npVc.png","filmriseforensicfiles":"~8j2npVc.png","filmrisefreemovies":"https://provider-static.plex.tv/epg/cms/production/cde90a84-972c-49ea-baf2-941a657dbeea/FilmRise_FreeMovies_1500x1000_logo_light.png","filmrisehellskitchen":"~8j2npVc.png","filmrisemysteries":"https://provider-static.plex.tv/epg/cms/production/2499ab6b-a57f-421a-869b-f311c1e052be/FilmRise_Mysteries_1500x1000_Light_Logo.png","filmrisescifi":"https://provider-static.plex.tv/epg/cms/production/c7722363-8b90-4f9b-a037-5306a5d194c8/FilmRise_SciFi_1500x1000_Light_Logo.png","filmrisetruecrime":"https://provider-static.plex.tv/epg/cms/production/df6011f2-06eb-40c0-a217-8bfd437b7f03/FilmRise_TrueCrime_1500x1000_Light_Logo.png","filmrisewestern":"https://provider-static.plex.tv/epg/cms/production/924cac96-f0da-4eea-aab9-87c708a87f99/FilmRise_Western_1500x1000_Light_Logo.png","filmstreams":"~cFbzgED.jpg","fox13memphisnow":"~gRrytbQ.png","fox23tulsanow":"~DuxjNzD.png","foxbusinessnetwork":"https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Fox_Business.svg/960px-Fox_Business.svg.png","foxdeportes":"https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/FOX_Deportes_logo.png/960px-FOX_Deportes_logo.png","foxfamilymovies":"~TnPN4nP.png","foxmoviesmiddleeast":"https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/Fox_Movies_%28Asia%29_logo.svg/960px-Fox_Movies_%28Asia%29_logo.svg.png","foxnewschannel":"https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/Fox_News_Channel_logo.svg/960px-Fox_News_Channel_logo.svg.png","foxnewsinternational":"https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/Fox_News_Channel_logo.svg/960px-Fox_News_Channel_logo.svg.png","foxnewsradio":"https://radio.foxnews.com/wp-content/uploads/2017/10/default_logo-150x150.png","foxrewayat":"~4rrWOTX.png","foxsoccerplus":"~gR7u8DM.png","foxsoccerplusalternate":"~X1v3bdM.png","foxsoul":"~YIamDGn.png","foxweather":"https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/Fox_Weather_logo.svg/960px-Fox_Weather_logo.svg.png","gebnetwork":"https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/GEB_logo_blue.png/960px-GEB_logo_blue.png","gemshoppingnetwork":"~WlHEpAu.png","genesis24":"~C2e9GNU.png","genesissciencenetwork":"~CFAn996.png","genesistelevision":"~q9Yw7iG.png","gentv":"~qGddRW4.png","georgetowntv":"~9DpXysG.png","getveducationtelevision":"~mNxYGFO.png","hallmarkchannel":"https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Hallmark_Channel.svg/960px-Hallmark_Channel.svg.png","hallmarkdrama":"https://upload.wikimedia.org/wikipedia/commons/b/b0/Hallmark_Drama.svg","hallmarkfamily":"https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/Hallmark_Family_2024.svg/960px-Hallmark_Family_2024.svg.png","hallmarkmoviesmore":"https://provider-static.plex.tv/epg/cms/production/29af70d1-d3ba-4a16-bc4d-bd99e7e7def4/hallmark-movies-and-more_color.png","hallmarkmoviesmysteries":"~GPRGA9C.png","hallmarkmystery":"https://upload.wikimedia.org/wikipedia/commons/3/32/Hallmark_Mystery_2024.svg","hbocomedy":"https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/HBO_Comedy_%282014%29.svg/960px-HBO_Comedy_%282014%29.svg.png","hbodrama":"https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5c/HBO_Drama_Logo.svg/960px-HBO_Drama_Logo.svg.png","hbofamilylatinamerica":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/HBO_Family.svg/960px-HBO_Family.svg.png","hbohawaii":"https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/HBO_logo.svg/960px-HBO_logo.svg.png","hbolatinamerica":"https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/HBO_logo.svg/960px-HBO_logo.svg.png","hbolatino":"https://i.ibb.co/6RHKfzKJ/IMG-2672.png","hbomovies":"https://thumb.wikimedia.org/wikipedia/commons/thumb/5/56/HBO_Movies_Logo.svg/960px-HBO_Movies_Logo.svg.png","hbomundicaribbean":"https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/HBO_Mundi.svg/960px-HBO_Mundi.svg.png","hbomundilatinamerica":"https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/HBO_Mundi.svg/960px-HBO_Mundi.svg.png","hbopoplatinamerica":"https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/HBO_Pop.svg/960px-HBO_Pop.svg.png","hbosignaturelatinamerica":"https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/HBO_Signature.svg/960px-HBO_Signature.svg.png","hboxtremelatinamerica":"https://upload.wikimedia.org/wikipedia/commons/thumb/f/fc/HBO_Xtreme.svg/960px-HBO_Xtreme.svg.png","hbozone":"https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/HBO_Zone_%282014%29.svg/960px-HBO_Zone_%282014%29.svg.png","hgtv":"https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/HGTV_US_Logo_2015.svg/960px-HGTV_US_Logo_2015.svg.png","hgtvarabia":"~xJ0f09L.png","hgtvasia":"https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/HGTV_US_Logo_2015.svg/960px-HGTV_US_Logo_2015.svg.png","hgtvlatinamerica":"https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/HGTV_US_Logo_2015.svg/960px-HGTV_US_Logo_2015.svg.png","history2asia":"https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/History2_logo_%282022%29.svg/500px-History2_logo_%282022%29.svg.png","history2latinamerica":"https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/History2_logo_%282022%29.svg/500px-History2_logo_%282022%29.svg.png","history2middleeast":"https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/History2_logo_%282022%29.svg/500px-History2_logo_%282022%29.svg.png","history2nordic":"https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/History2_logo_%282022%29.svg/500px-History2_logo_%282022%29.svg.png","historyafrica":"https://upload.wikimedia.org/wikipedia/commons/thumb/0/01/History_%282021%29.svg/500px-History_%282021%29.svg.png","historyasia":"https://upload.wikimedia.org/wikipedia/commons/thumb/0/01/History_%282021%29.svg/500px-History_%282021%29.svg.png","historylatinamerica":"https://upload.wikimedia.org/wikipedia/commons/thumb/0/01/History_%282021%29.svg/500px-History_%282021%29.svg.png","historymiddleeast":"https://upload.wikimedia.org/wikipedia/commons/thumb/0/01/History_%282021%29.svg/500px-History_%282021%29.svg.png","lifetime":"https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Logo_Lifetime_2020.svg/960px-Logo_Lifetime_2020.svg.png","lifetimeafrica":"https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Logo_Lifetime_2020.svg/960px-Logo_Lifetime_2020.svg.png","lifetimeasia":"https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Logo_Lifetime_2020.svg/960px-Logo_Lifetime_2020.svg.png","lifetimelatinamerica":"https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Logo_Lifetime_2020.svg/960px-Logo_Lifetime_2020.svg.png","lifetimemovies":"~BWmqYTO.png","lifetimerealwomen":"https://upload.wikimedia.org/wikipedia/commons/thumb/b/bc/LRW_logo_2012.png/960px-LRW_logo_2012.png","mtv2":"https://upload.wikimedia.org/wikipedia/en/thumb/2/21/MTV2_logo_2013.svg/960px-MTV2_logo_2013.svg.png","mtvclassic":"https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/MTV_Classic_US.svg/960px-MTV_Classic_US.svg.png","mtvembarazadaalos16":"~FumEFIG.png","mtvenespanol":"~vQWWfyW.png","mtvhits":"https://static.wikia.nocookie.net/logopedia/images/b/bf/MTV_Hits_2012.svg","mtvlatinamerica":"https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/MTV_2021_%28brand_version%29.svg/960px-MTV_2021_%28brand_version%29.svg.png","mtvlive":"~3UByLqb.png","mtvnordic":"https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/MTV_2021_%28brand_version%29.svg/960px-MTV_2021_%28brand_version%29.svg.png","mtvtempo":"~qHBLPrP.png","mtvtr3s":"https://upload.wikimedia.org/wikipedia/commons/thumb/f/f0/MTV_Tres_2010_logo.svg/960px-MTV_Tres_2010_logo.svg.png","mtvu":"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/MTVU_Logo_%282016%E2%80%93present%29.svg/960px-MTVU_Logo_%282016%E2%80%93present%29.svg.png","natgeokidslatinamerica":"~mkZbgdp.png","natgeomundo":"~0gruEy1.png","nationalgeographiclatinamerica":"https://upload.wikimedia.org/wikipedia/commons/thumb/f/fc/Natgeologo.svg/960px-Natgeologo.svg.png","nationalgeographicwildlatinamerica":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/National_Geographic_Wild_logo.svg/960px-National_Geographic_Wild_logo.svg.png","nbc":"https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/NBC_logo_2022_%28vertical%29.svg/960px-NBC_logo_2022_%28vertical%29.svg.png","nbcamericancrimes":"https://upload.wikimedia.org/wikipedia/commons/4/4b/NBC_American_Crimes.png","nbclx":"~5iT7hEa.png","nbcnewsnow":"~lw2THVt.png","nbcsn":"https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/NBCSN_logo_%28flat%29.svg/960px-NBCSN_logo_%28flat%29.svg.png","nbcsportsbayareaplus":"~AbjaryJ.png","nbcsportschicagoplus":"~AzgFCLl.png","nbcsportschicagoplus2":"~6HcSnDE.png","nbcsportsphiladelphiaplus":"~M4khZJP.png","nbcsportswashingtonplus":"~v7C3uxd.png","nbctruecrmz":"https://upload.wikimedia.org/wikipedia/commons/0/0c/NBC_True_CRMZ.png","nbcuniverso":"~RZ8pIKe.png","paramountnetwork":"https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Paramount_Network.svg/960px-Paramount_Network.svg.png","paramountnetworkasia":"https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Paramount_Network.svg/960px-Paramount_Network.svg.png","paramountnetworklatinamerica":"https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Paramount_Network.svg/960px-Paramount_Network.svg.png","pbs":"https://upload.wikimedia.org/wikipedia/commons/8/89/PBS_logo_2019.svg","pbsantiquesroadshow":"~U9CYaok.png","pbsnorthcarolina":"https://upload.wikimedia.org/wikipedia/commons/8/89/PBS_logo_2019.svg","pbswisconsin":"https://upload.wikimedia.org/wikipedia/commons/4/48/PBS_Wisconsin_2019_Logo.svg","sonycanalcompetencias":"~Dut8Ftk.png","sonycanalescapeperfecto":"~ohE9IgP.png","sonychannelandes":"https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/Sony_Channel_Logo.png/960px-Sony_Channel_Logo.png","sonykalhindi":"~9Qq8DKh.png","sonymaxus":"~LBICKI5.png","sonymovieslatinamerica":"https://upload.wikimedia.org/wikipedia/commons/thumb/9/9b/Sony_Movies_Logo.svg/500px-Sony_Movies_Logo.svg.png","sonysabusa":"https://upload.wikimedia.org/wikipedia/en/thumb/f/f4/Sony_Sab_new.png/960px-Sony_Sab_new.png","space":"https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/SpaceLogo.svg/960px-SpaceLogo.svg.png","spacechannel":"~zofc9UJ.png","spacesciencenow":"~Zc8tW0l.png","studiouniversalafrica":"https://upload.wikimedia.org/wikipedia/commons/thumb/7/74/StudioUniversal2016.png/960px-StudioUniversal2016.png","studiouniversallatinamerica":"https://upload.wikimedia.org/wikipedia/commons/thumb/7/74/StudioUniversal2016.png/960px-StudioUniversal2016.png","syfylatinamerica":"~4fMWhUE.png","tcm":"~juCNJxd.png","tcmlatinamerica":"~QpDkrmT.png","telemundo":"https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Telemundo_logo_2018.svg/960px-Telemundo_logo_2018.svg.png","telemundointernacional":"~j2O4ndp.png","tlcafrica":"~3zrkpno.png","tlcarabia":"~qcbUHtX.png","tlcbalkan":"https://upload.wikimedia.org/wikipedia/commons/thumb/7/74/TLC_Logo.svg/960px-TLC_Logo.svg.png","tlclatinamerica":"https://upload.wikimedia.org/wikipedia/commons/thumb/7/74/TLC_Logo.svg/960px-TLC_Logo.svg.png","tnt":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/TNT_Logo_2016.svg/960px-TNT_Logo_2016.svg.png","tntlatinamerica":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/TNT_Logo_2016.svg/960px-TNT_Logo_2016.svg.png","tntnovelas":"https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/TNT_Novelas_2025.svg/1920px-TNT_Novelas_2025.svg.png","tntserieslatinamerica":"https://upload.wikimedia.org/wikipedia/commons/thumb/c/c0/TNT_Series_2025.svg/1920px-TNT_Series_2025.svg.png","tooncast":"~3yXRbQy.png","universalcinema":"~XxfET68.png","universalcomedy":"~avBL8pQ.png","universalcrime":"~OwSlGMu.png","universalkids":"https://upload.wikimedia.org/wikipedia/commons/thumb/3/39/Universal_Kids_2019_Logo.svg/960px-Universal_Kids_2019_Logo.svg.png","universallivingfaithnetwork":"~Yb4ILR8.png","universalpremiere":"~KdFk80C.png","universalreality":"~mqfUD1R.png","universaltvlatinamerica":"https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/Universal_TV_logo.svg/960px-Universal_TV_logo.svg.png","univision":"https://upload.wikimedia.org/wikipedia/commons/thumb/a/af/Logo_Univision_2019.svg/960px-Logo_Univision_2019.svg.png","univisionlatinamerica":"https://upload.wikimedia.org/wikipedia/commons/thumb/a/af/Logo_Univision_2019.svg/960px-Logo_Univision_2019.svg.png","univisiontlnovelas":"https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Univision_tlnovelas_%282019%29.svg/960px-Univision_tlnovelas_%282019%29.svg.png","warnerchannel":"https://upload.wikimedia.org/wikipedia/commons/thumb/b/b0/Warner_Channel_2026.svg/960px-Warner_Channel_2026.svg.png","warnertv":"~QtGQR0c.png","warnertvasia":"https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Warner2018LA.png/960px-Warner2018LA.png"};
+const LOGO_BR = 863;
+const LOGO_KEYS = Object.keys(LOGOS), logoCache = new Map();
+const logoKey = n => norm(String(n || "").replace(/\[[^\]]*\]|\([^)]*\)/g, "").trim().replace(/^[A-Za-z]{2,3}\s*[:|]\s*/, "").replace(/\b(fhd|uhd|hd|sd|h265|h264|hevc|4k|8k|50fps|60fps)\b/gi, ""));
+function logoFor(name) {
+  const k = logoKey(name);
+  if (k.length < 3) return "";
+  if (logoCache.has(k)) return logoCache.get(k);
+  let hit = LOGOS[k] ? k : null;
+  if (!hit && k.length >= 4) {
+    for (const x of LOGO_KEYS) if (x.length > k.length && x.startsWith(k) && (!hit || x.length < hit.length)) hit = x;
+    if (!hit) for (const x of LOGO_KEYS) if (x.length >= 4 && k.startsWith(x) && k.length - x.length <= 6 && (!hit || x.length > hit.length)) hit = x;
+    if (!hit) {
+      const w = norm(String(name).replace(/\[[^\]]*\]|\([^)]*\)/g, "").trim().replace(/^[A-Za-z]{2,3}\s*[:|]\s*/, "").split(/\s+/)[0]);
+      if (w.length >= 4) {
+        const c = LOGO_KEYS.slice(0, LOGO_BR).filter(x => x.startsWith(w));
+        if (c.length && c.length <= 8) hit = c.sort((a, b) => a.length - b.length)[0];
+      }
+    }
+  }
+  const u = hit ? LOGOS[hit].replace(/^~/, "https://i.imgur.com/") : "";
+  logoCache.set(k, u);
+  return u;
+}
+function logoFail(img) {
+  const alt = img.dataset.alt;
+  if (alt && img.src !== alt) { img.dataset.alt = ""; img.src = alt; } else img.remove();
+}
+
+const ini = n => (String(n).replace(/^[A-Za-z]{2,3}:\s*/, "").match(/[A-Za-z0-9À-ÿ]+/g) || ["?"]).slice(0, 2).map(w => w[0]).join("").toUpperCase();
+const norm = t => String(t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+const bare = t => norm(String(t || "").replace(/\b(fhd|uhd|hd|sd|h265|4k|8k)\b/gi, ""));
+
+async function loadXml(src) {
+  if (S.xml) return S.xml;
+  let r;
+  try { r = await fetch(src); }
+  catch (e) { throw new Error("o navegador não conseguiu acessar o link do EPG (bloqueio do servidor ou link incorreto)"); }
+  if (!r.ok) throw new Error("o link do EPG respondeu com erro " + r.status);
+  const buf = await r.arrayBuffer(), u = new Uint8Array(buf);
+  let txt;
+  if (u[0] === 0x1f && u[1] === 0x8b) {
+    if (!window.DecompressionStream) throw new Error("este navegador não abre arquivos .gz; use um link .xml");
+    txt = await new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream("gzip"))).text();
+  } else txt = new TextDecoder().decode(buf);
+  const doc = new DOMParser().parseFromString(txt, "text/xml");
+  if (doc.querySelector("parsererror")) throw new Error("o arquivo não é um XMLTV válido");
+  const map = {}, names = {}, now = Date.now(), lim = now + 72 * 3600e3;
+  let total = 0;
+  doc.querySelectorAll("channel").forEach(c => {
+    const id = c.getAttribute("id");
+    c.querySelectorAll("display-name").forEach(d => { names[norm(d.textContent)] = id; names[bare(d.textContent)] = id; });
+  });
+  doc.querySelectorAll("programme").forEach(p => {
+    const st = xmlTime(p.getAttribute("start")), en = xmlTime(p.getAttribute("stop"));
+    if (en < now || st > lim) return;
+    const c = p.getAttribute("channel"), t = p.querySelector("title"), d = p.querySelector("desc");
+    (map[c] = map[c] || []).push({start: st, end: en, title: t ? t.textContent : "", desc: d ? d.textContent : ""});
+    total++;
+  });
+  if (!total) throw new Error("o arquivo foi lido, mas não tem programas para os próximos dias");
+  Object.values(map).forEach(a => a.sort((x, y) => x.start - y.start));
+  return S.xml = {map, names, total, canais: Object.keys(map).length};
+}
+
+function drawEpg() {
+  if (S.mode !== "live") return;
+  const L = S.epgList || [], now = Date.now();
+  const t = ms => new Date(ms).toLocaleTimeString("pt-BR", {hour: "2-digit", minute: "2-digit"});
+  const i = L.findIndex(e => e.start <= now && e.end > now), cur = L[i], nx = i >= 0 ? L[i + 1] : L[0];
+  $("mp").textContent = cur ? cur.title : "";
+  const pct = cur ? Math.min(100, (now - cur.start) / (cur.end - cur.start) * 100) + "%" : "0";
+  $("mn1").textContent = cur ? cur.title : (S.epgMsg || "Sem programação");
+  $("mn1t").textContent = cur ? t(cur.start) + " - " + t(cur.end) : "";
+  $("mbar").style.width = pct;
+  $("mnext").innerHTML = (i >= 0 ? L.slice(i + 1) : L).slice(0, 6).map(e => `<li><b>${t(e.start)}</b><span>${esc(e.title)}</span></li>`).join("");
+  $("pnow").textContent = cur ? "Agora: " + cur.title : (S.epgMsg || (nx ? "" : "Sem programação"));
+  $("pnowt").textContent = cur ? t(cur.start) + " - " + t(cur.end) : "";
+  $("pbar").style.width = cur ? Math.min(100, (now - cur.start) / (cur.end - cur.start) * 100) + "%" : "0";
+  $("pnext2").textContent = nx ? "Próximo: " + nx.title : "";
+  $("pnextt").textContent = nx ? t(nx.start) + " - " + t(nx.end) : "";
+}
+setInterval(drawEpg, 30000);
+
+async function showEpg(id, epgId, chName) {
+  const tok = S.epgTok = {};
+  S.epgList = []; S.epgMsg = S.xml ? "Carregando programação..." : "Carregando o guia de programação (na primeira vez pode demorar)..."; drawEpg();
+  try {
+    const src = S.epg || `${S.base}/xmltv.php?username=${encodeURIComponent(S.u)}&password=${encodeURIComponent(S.p)}`;
+    let list = [], aviso = "";
+    try {
+      const X = await loadXml(src);
+      const key = X.map[epgId] ? epgId : (X.names[norm(chName)] || X.names[bare(chName)]);
+      list = (X.map[key] || []).filter(x => x.end > Date.now());
+      aviso = `Guia lido (${X.total} programas em ${X.canais} canais), mas este canal não está nele${epgId ? " (código " + epgId + ")" : ""}.`;
+    } catch (e) { if (S.epg) throw e; aviso = e.message; }
+    if (!list.length && !S.epg) { try { list = await shortEpg(id); } catch (e) {} }
+    if (S.epgTok !== tok) return;
+    S.epgList = list.slice(0, 12);
+    S.epgMsg = S.epgList.length ? "" : (aviso || "Sem programação para este canal");
+  } catch (e) {
+    if (S.epgTok !== tok) return;
+    S.epgList = []; S.epgMsg = "Programação indisponível: " + e.message;
+  }
+  drawEpg();
+}
+
+/* ---------- reprodução ---------- */
+function stop() {
+  if (hls) { hls.destroy(); hls = null; }
+  if (mp) { mp.destroy(); mp = null; }
+  const v = $("v"); v.pause(); v.removeAttribute("src"); v.load(); $("msg").textContent = "";
+}
+function fail(why) {
+  $("spin").classList.add("hidden");
+  $("msg").textContent = "Não foi possível abrir (" + why + ").";
+}
+
+function play(url, name, isHls, key) {
+  const v = $("v"), P = $("player");
+  savePos();
+  stop(); S.last = url; S.key = key || null;
+  S.meta = S.nextMeta || null; S.nextMeta = null;
+  v.playbackRate = 1; S.played = false; S.retry = 0;
+  const rec = S.key ? POS[S.base + "|" + S.key] : null;
+  S.resume = S.nextResume > 5 ? S.nextResume : (rec && rec.t > 5 && (!rec.d || rec.t < rec.d - 30) ? rec.t : 0); S.nextResume = 0;
+  $("seek").value = 0; $("tcur").textContent = "0:00"; $("tdur").textContent = "0:00";
+  updFav();
+  const wasHidden = P.classList.contains("hidden");
+  P.dataset.mode = S.mode; P.dataset.from = S.direct ? "direct" : ""; P.classList.remove("hidden", "lock");
+  $("plock").innerHTML = ic("unlock");
+  applyAsp(); $("aspmenu").classList.add("hidden"); $("optmenu").classList.add("hidden");
+  $("ptitle").textContent = name; S.title = name; $("mt").textContent = name; $("mp").textContent = "";
+  $("spin").classList.remove("hidden");
+  $("plistl").textContent = {live: "Lista de Canais", vod: "Lista de Filmes", series: "Episódios"}[S.mode];
+  if (wasHidden) document.body.classList.toggle("drawer", !S.direct);
+  requestAnimationFrame(applyAsp);
+  bump();
+  v.onplaying = () => { $("spin").classList.add("hidden"); $("msg").textContent = ""; S.played = true; S.retry = 0; };
+  if (S.casting) {
+    $("spin").classList.add("hidden");
+    const at = S.resume || 0; S.resume = 0;
+    castLoad(at).catch(() => { S.casting = false; $("castbar").classList.add("hidden"); toast("A transmissão falhou. Tocando no aparelho."); play(url, name, isHls, key); });
+    return;
+  }
+  if (isHls) { v.onerror = () => fail("formato não suportado"); return live(url, v); }
+  const ext = (url.match(/\.([a-z0-9]+)$/i) || [, ""])[1].toLowerCase();
+  let retried = false;
+  v.onerror = () => {
+    const code = v.error ? v.error.code : 0, alt = url.replace(/\.[a-z0-9]+$/i, ".m3u8");
+    if (!retried && ext !== "m3u8" && window.Hls && Hls.isSupported()) {
+      retried = true; $("msg").textContent = "Tentando outro formato...";
+      hls = new Hls(); hls.loadSource(alt); hls.attachMedia(v);
+      hls.on(Hls.Events.ERROR, (_, d) => { if (d.fatal) fail("." + ext + " e m3u8 falharam: " + d.details); });
+      v.play().catch(() => {});
+    } else fail("." + ext + ", código " + code);
+  };
+  v.src = url; v.play().catch(() => {});
+}
+
+function live(url, v) {
+  const ts = url.replace(/\.m3u8$/, ".ts");
+  const tryTs = why => {
+    if (hls) { hls.destroy(); hls = null; }
+    if (window.mpegts && mpegts.isSupported()) {
+      mp = mpegts.createPlayer({type: "mpegts", isLive: true, url: ts});
+      mp.attachMediaElement(v); mp.load();
+      mp.on(mpegts.Events.ERROR, (t, d) => {
+        if (S.played && S.retry < 6) {
+          S.retry++; $("msg").textContent = "Reconectando (" + S.retry + "/6)...";
+          setTimeout(() => { if (mp) { mp.unload(); mp.load(); v.play().catch(() => {}); } }, 2000);
+        } else fail(why + ", " + d);
+      });
+      v.play().catch(() => {});
+    } else fail(why);
+  };
+  if (window.Hls && Hls.isSupported()) {
+    hls = new Hls();
+    hls.loadSource(url); hls.attachMedia(v);
+    hls.on(Hls.Events.ERROR, (_, d) => {
+      if (!d.fatal) return;
+      if (S.played && S.retry < 6) {
+        S.retry++; $("spin").classList.remove("hidden"); $("msg").textContent = "Reconectando (" + S.retry + "/6)...";
+        if (d.type === Hls.ErrorTypes.MEDIA_ERROR) hls.recoverMediaError();
+        else setTimeout(() => { if (hls) hls.startLoad(); }, 1500 * S.retry);
+        return;
+      }
+      tryTs(d.details);
+    });
+  } else if (v.canPlayType("application/vnd.apple.mpegurl")) {
+    v.src = url; v.play().catch(() => {});
+  } else tryTs("sem suporte a HLS");
+}
+
+/* ---------- controles do player ---------- */
+let hideT;
+function bump() {
+  const P = $("player"); P.classList.add("ui");
+  clearTimeout(hideT); hideT = setTimeout(() => P.classList.remove("ui"), 4000);
+}
+function toast(t) {
+  const el = $("toast"); el.textContent = t; el.classList.add("show");
+  clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove("show"), 1200);
+}
+$("player").onclick = e => {
+  const open = ["aspmenu", "optmenu"].filter(id => !$(id).classList.contains("hidden"));
+  if (open.length && !e.target.closest("#aspmenu,#pasp,#optmenu,#popt")) { open.forEach(id => $(id).classList.add("hidden")); return; }
+  if (e.target.closest("button,input")) return bump();
+  if (document.body.classList.contains("drawer")) { if (!e.target.closest("#mepg")) setDrawer(false); return; }
+  const P = $("player"), now = Date.now();
+  if (S.mode !== "live" && now - (S.lastTap || 0) < 320 && Math.abs(e.clientX - (S.lastX || 0)) < 90) {
+    skip(e.clientX < innerWidth / 2 ? -10 : 10); S.lastTap = 0; return;
+  }
+  S.lastTap = now; S.lastX = e.clientX;
+  if (P.classList.contains("ui")) P.classList.remove("ui"); else bump();
+};
+let POS = {}; try { POS = JSON.parse(localStorage.getItem("iptv_pos") || "{}") || {}; } catch (_) {}
+let SEEN = {}; try { SEEN = JSON.parse(localStorage.getItem("iptv_seen") || "{}") || {}; } catch (_) {}
+let seeking = false, lastSave = 0;
+function epState(id) {
+  const k = S.base + "|ep:" + id, pos = POS[k];
+  if (pos) {
+    const pct = pos.d ? Math.min(99, Math.round(pos.t / pos.d * 100)) : 0;
+    return {cls: "part", html: `<em class="stt pt">◐ ${pct}%</em><i class="epbar" style="width:${pct}%"></i>`};
+  }
+  if (SEEN[k]) return {cls: "seen", html: `<em class="stt ok">✓ Assistido</em>`};
+  return {cls: "", html: ""};
+}
+function updEpMark(id) {
+  const b = [...document.querySelectorAll("#list .ch[data-eid]")].find(x => x.dataset.eid === String(id));
+  if (!b) return;
+  const st = epState(id);
+  b.classList.remove("seen", "part"); if (st.cls) b.classList.add(st.cls);
+  b.querySelectorAll(".stt,.epbar").forEach(x => x.remove());
+  b.insertAdjacentHTML("beforeend", st.html);
+}
+function markSeen() {
+  if (!S.key) return;
+  const k = S.base + "|" + S.key;
+  delete POS[k]; SEEN[k] = Date.now();
+  const ks = Object.keys(SEEN);
+  if (ks.length > 2000) ks.sort((a, b) => SEEN[a] - SEEN[b]).slice(0, ks.length - 2000).forEach(x => delete SEEN[x]);
+  try { localStorage.setItem("iptv_seen", JSON.stringify(SEEN)); } catch (_) {}
+  persistPos();
+  if (S.key.startsWith("ep:")) updEpMark(S.key.slice(3));
+}
+const fmt = t => {
+  t = Math.max(0, Math.floor(t || 0));
+  const h = Math.floor(t / 3600), m = Math.floor(t % 3600 / 60), x = t % 60;
+  return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(x).padStart(2, "0");
+};
+function persistPos() {
+  const ks = Object.keys(POS);
+  if (ks.length > 300) ks.sort((a, b) => POS[a].u - POS[b].u).slice(0, ks.length - 300).forEach(k => delete POS[k]);
+  try { localStorage.setItem("iptv_pos", JSON.stringify(POS)); } catch (_) {}
+}
+function savePos() {
+  const v = $("v");
+  if (!S.key || !isFinite(v.duration) || !v.duration || v.currentTime < 5) return;
+  const k = S.base + "|" + S.key;
+  if (v.currentTime > v.duration - 30 || v.currentTime / v.duration > 0.95) return markSeen();
+  POS[k] = {t: Math.floor(v.currentTime), d: Math.floor(v.duration), u: Date.now(), m: S.meta || (POS[k] && POS[k].m)};
+  persistPos();
+  if (S.key.startsWith("ep:")) updEpMark(S.key.slice(3));
+}
+function clearPos() { if (S.key) { delete POS[S.base + "|" + S.key]; persistPos(); } }
+function tick() {
+  const v = $("v"), d = v.duration;
+  if (!S.key || !isFinite(d) || !d) return;
+  if (!seeking) { $("seek").value = v.currentTime / d * 1000; $("tcur").textContent = fmt(v.currentTime); }
+  $("tdur").textContent = fmt(d);
+  if (Date.now() - lastSave > 5000) { lastSave = Date.now(); savePos(); }
+}
+$("v").ontimeupdate = tick;
+$("v").onloadedmetadata = () => {
+  if (S.resume) { $("v").currentTime = S.resume; toast("Retomando de " + fmt(S.resume)); S.resume = 0; }
+  tick();
+};
+$("seek").oninput = e => { seeking = true; $("tcur").textContent = fmt(e.target.value / 1000 * ($("v").duration || 0)); bump(); };
+$("seek").onchange = e => {
+  const v = $("v");
+  if (isFinite(v.duration)) v.currentTime = e.target.value / 1000 * v.duration;
+  seeking = false; savePos();
+};
+document.addEventListener("visibilitychange", () => { if (document.hidden) savePos(); });
+addEventListener("pagehide", savePos);
+const syncIcon = () => { $("ppp").innerHTML = ic($("v").paused ? "play" : "pause", true); };
+$("v").onplay = syncIcon;
+$("v").onpause = () => { syncIcon(); savePos(); };
+$("ppp").onclick = () => { const v = $("v"); if (v.paused) v.play(); else v.pause(); };
+$("pback").onclick = () => S.direct ? leavePlayer() : setDrawer(true);
+$("pfav").onclick = () => { if (S.cur != null) toggleFav(S.cur); };
+$("pclose").onclick = leavePlayer;
+$("plock").onclick = () => {
+  const P = $("player"); P.classList.toggle("lock");
+  $("plock").innerHTML = ic(P.classList.contains("lock") ? "lock" : "unlock");
+};
+function step(d) {
+  const L = [...document.querySelectorAll("#list .ch:not([data-back])")], i = L.findIndex(x => x.classList.contains("on"));
+  if (L[i + d]) L[i + d].click();
+}
+$("pprev").onclick = () => step(-1);
+$("pnext").onclick = () => step(1);
+function setDrawer(on) {
+  document.body.classList.toggle("drawer", on);
+  $("aspmenu").classList.add("hidden");
+  requestAnimationFrame(() => {
+    applyAsp();
+    if (on) {
+      if (S.view) { const el = document.querySelector("#list .ch.on"); if (el) el.scrollIntoView({block: "center"}); }
+      else focusCurrent();
+    }
+  });
+}
+function focusCurrent() {
+  if (S.view || S.cur == null || !S.D[S.mode]) return;
+  const c = CFG[S.mode], i = PG.items.findIndex(x => String(x[c.id]) === String(S.cur));
+  if (i < 0) return;
+  let g = 0; while (PG.n <= i && PG.n < PG.items.length && g++ < 100) morePage(false);
+  const b = [...document.querySelectorAll("#list .ch")].find(x => x.dataset.id === String(S.cur));
+  if (b) { mark(b); b.scrollIntoView({block: "center"}); }
+}
+async function listFromDirect() {
+  const mode = S.mode, cur = String(S.cur);
+  S.direct = false; $("player").dataset.from = "";
+  await openSection(mode);
+  const it = S.D[mode] && S.D[mode].byId.get(cur);
+  S.cat = it && it.category_id != null ? String(it.category_id) : "";
+  let found = false;
+  document.querySelectorAll("#catlist .cat").forEach(b => { const on = b.dataset.c === S.cat; if (on) found = true; b.classList.toggle("on", on); });
+  if (!found) { S.cat = ""; const all = document.querySelector('#catlist .cat[data-c=""]'); if (all) all.classList.add("on"); }
+  render();
+}
+$("plist").onclick = async () => {
+  if (document.body.classList.contains("drawer")) return setDrawer(false);
+  if (S.direct) await listFromDirect();
+  setDrawer(true);
+};
+
+async function toggleFs() {
+  try {
+    if (document.fullscreenElement) await document.exitFullscreen();
+    else {
+      const el = document.documentElement, f = el.requestFullscreen || el.webkitRequestFullscreen;
+      if (!f) throw 0;
+      await f.call(el);
+      try { await screen.orientation.lock("landscape"); } catch (_) {}
+    }
+  } catch (_) {
+    const v = $("v");
+    if (v.webkitEnterFullscreen) v.webkitEnterFullscreen(); else toast("Tela cheia indisponível neste aparelho");
+  }
+}
+$("pfs").onclick = toggleFs;
+document.addEventListener("fullscreenchange", () => {
+  const on = !!document.fullscreenElement;
+  $("pfs").innerHTML = ic(on ? "shrink" : "expand");
+  if (!on) { try { screen.orientation.unlock(); } catch (_) {} }
+  applyAsp();
+});
+["plogo", "mlogo"].forEach(id => { $(id).onerror = () => { $(id).style.display = "none"; }; });
+const ASP = [{n: "Original", fit: "contain"}, {n: "16:9", r: 16 / 9}, {n: "4:3", r: 4 / 3}, {n: "Match parent", fit: "fill"}, {n: "Zoom", fit: "cover"}];
+let ai = 0; try { ai = Number(localStorage.getItem("iptv_asp")) || 0; } catch (_) {}
+if (!ASP[ai]) ai = 0;
+function applyAsp() {
+  const v = $("v"), P = $("vbox"), m = ASP[ai], W = P.clientWidth, H = P.clientHeight;
+  if (m.r && W && H) {
+    let w = W, h = W / m.r;
+    if (h > H) { h = H; w = H * m.r; }
+    v.style.width = w + "px"; v.style.height = h + "px"; v.style.objectFit = "fill";
+  } else { v.style.width = v.style.height = "100%"; v.style.objectFit = m.fit || "contain"; }
+}
+function drawAsp() {
+  $("aspmenu").innerHTML = ASP.map((m, i) =>
+    `<button class="opt${i === ai ? " on" : ""}" data-i="${i}"><span>${m.n}</span><span>${i === ai ? "✓" : ""}</span></button>`).join("");
+}
+$("pasp").onclick = () => { drawAsp(); $("optmenu").classList.add("hidden"); $("aspmenu").classList.toggle("hidden"); };
+$("aspmenu").onclick = e => {
+  const b = e.target.closest(".opt"); if (!b) return;
+  ai = Number(b.dataset.i); try { localStorage.setItem("iptv_asp", ai); } catch (_) {}
+  applyAsp(); $("aspmenu").classList.add("hidden"); toast(ASP[ai].n);
+};
+addEventListener("resize", applyAsp);
+$("vol").oninput = e => { $("v").volume = e.target.value / 100; bump(); };
+$("bri").oninput = e => { $("v").style.filter = "brightness(" + e.target.value + "%)"; bump(); };
+$("v").onended = () => { markSeen(); if (S.mode === "series" && S.epIdx != null) step(1); };
+
+/* ---------- atalhos ---------- */
+const cred = () => `${encodeURIComponent(S.u)}/${encodeURIComponent(S.p)}`;
+const persistSeen = () => { try { localStorage.setItem("iptv_seen", JSON.stringify(SEEN)); } catch (_) {} };
+function startLive(it, direct) {
+  S.mode = "live"; S.direct = !!direct; S.recon = 0; S.cur = String(it.stream_id); addRec(S.cur);
+  const src = it.stream_icon || logoFor(it.name);
+  ["plogo", "mlogo"].forEach(id => { const el = $(id); el.style.display = src ? "" : "none"; if (src) el.src = src; });
+  play(`${S.base}/live/${cred()}/${it.stream_id}.m3u8`, it.name, true);
+  showEpg(it.stream_id, it.epg_channel_id, it.name);
+}
+
+/* ---------- continuar assistindo ---------- */
+function renderCont() {
+  const pre = S.base + "|";
+  const items = Object.entries(POS).filter(([k, v]) => k.startsWith(pre) && v && v.m && v.d).sort((a, b) => b[1].u - a[1].u).slice(0, 12);
+  $("cont").classList.toggle("hidden", !items.length);
+  $("controw").innerHTML = items.map(([k, v]) => {
+    const pct = Math.min(99, Math.round(v.t / v.d * 100));
+    return `<button class="cc" data-k="${esc(k)}"><span class="cimg">${v.m.img ? `<img src="${esc(v.m.img)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ""}<i class="epbar" style="width:${pct}%"></i></span><span class="ct">${esc(v.m.n)}</span><span class="cs">${fmt(v.t)} / ${fmt(v.d)}</span></button>`;
+  }).join("");
+}
+$("controw").onclick = e => {
+  const b = e.target.closest(".cc"); if (!b) return;
+  const v = POS[b.dataset.k]; if (!v || !v.m) return;
+  const m = v.m, ep = m.k === "ep";
+  S.mode = ep ? "series" : "vod"; S.direct = true; S.recon = 0; S.nextMeta = m; S.cur = String(ep ? m.sid : m.id); addRec(S.cur);
+  if (ep) S.eid = m.id;
+  ["plogo", "mlogo"].forEach(id => { const el = $(id); el.style.display = m.img ? "" : "none"; if (m.img) el.src = m.img; });
+  play(`${S.base}/${ep ? "series" : "movie"}/${cred()}/${m.id}.${m.ext || "mp4"}`, m.n, false, (ep ? "ep:" : "vod:") + m.id);
+};
+
+/* ---------- busca geral ---------- */
+let sTimer;
+function openSearch() { show("search"); $("sq").value = ""; $("sres").innerHTML = ""; $("sq").focus(); ensureAll(); }
+async function ensureAll() {
+  const need = ["live", "vod", "series"].filter(m => !S.D[m]);
+  if (!need.length) return true;
+  $("sres").innerHTML = skel(8);
+  try { await Promise.all(need.map(m => loadMode(m))); }
+  catch (e) { $("sres").innerHTML = `<p class="note">Não foi possível carregar as listas. Confira o servidor.</p>`; return false; }
+  $("sres").innerHTML = ""; doSearch(); return true;
+}
+function doSearch() {
+  if (!["live", "vod", "series"].every(m => S.D[m])) return;
+  const q = norm($("sq").value);
+  if (q.length < 2) { $("sres").innerHTML = q ? `<p class="note">Digite ao menos 2 letras.</p>` : ""; return; }
+  let h = "";
+  [["live", "Canais"], ["vod", "Filmes"], ["series", "Séries"]].forEach(([m, label]) => {
+    const c = CFG[m], all = S.D[m].items.filter(i => (i._n || (i._n = norm(i.name))).includes(q)), top = all.slice(0, 30);
+    if (!top.length) return;
+    h += `<div class="sea">${label} (${all.length})</div>` + top.map(i => {
+      const src = i[c.img] || (m === "live" ? logoFor(i.name) : "");
+      return `<button class="ch" data-m="${m}" data-id="${esc(i[c.id])}"><span class="lg"><i>${esc(ini(i.name))}</i>${src ? `<img src="${esc(src)}" alt="" loading="lazy" referrerpolicy="no-referrer" onload="this.style.opacity=1" onerror="this.remove()">` : ""}</span><span>${esc(i.name)}</span></button>`;
+    }).join("");
+  });
+  $("sres").innerHTML = h || `<p class="note">Nada encontrado.</p>`;
+}
+$("sq").oninput = () => { clearTimeout(sTimer); sTimer = setTimeout(doSearch, 200); };
+$("msbtn").onclick = openSearch;
+$("sback").onclick = () => show("home");
+$("srvback").onclick = () => show("home");
+$("sres").onclick = async e => {
+  const b = e.target.closest(".ch"); if (!b) return;
+  const m = b.dataset.m, it = S.D[m].byId.get(b.dataset.id); if (!it) return;
+  if (m === "live") return startLive(it, true);
+  await openSection(m); showDetails(it);
+};
+
+/* ---------- guia de programação (grade) ---------- */
+const PXM = 4;
+async function openGuide() {
+  show("guide"); $("gmsg").textContent = "Carregando canais...";
+  if (!S.D.live) { try { await loadMode("live"); } catch (e) { $("gmsg").textContent = "Não foi possível carregar os canais."; return; } }
+  const favs = FAV[S.base + "|live"] || [];
+  $("gcat").innerHTML = (favs.length ? `<option value="__fav">★ Favoritos</option>` : "") +
+    S.D.live.cats.map(c => `<option value="${esc(c.category_id)}">${esc(c.category_name)}</option>`).join("");
+  drawGuide();
+}
+$("epgbtn").onclick = openGuide;
+$("gcat").onchange = () => drawGuide();
+$("gback").onclick = () => show("home");
+async function drawGuide() {
+  const d = S.D.live, cat = $("gcat").value, favs = FAV[S.base + "|live"] || [], tok = S.gtok = {};
+  const chans = (cat === "__fav" ? favs.map(id => d.byId.get(id)).filter(Boolean) : d.items.filter(i => String(i.category_id) === cat)).slice(0, 40);
+  $("gmsg").textContent = "Carregando a programação...";
+  const src = S.epg || `${S.base}/xmltv.php?username=${encodeURIComponent(S.u)}&password=${encodeURIComponent(S.p)}`;
+  let rows, aviso = "";
+  try {
+    const X = await loadXml(src);
+    rows = chans.map(ch => {
+      const key = X.map[ch.epg_channel_id] ? ch.epg_channel_id : (X.names[norm(ch.name)] || X.names[bare(ch.name)]);
+      return {ch, list: X.map[key] || []};
+    });
+  } catch (e) {
+    aviso = e.message;
+    const rs = await Promise.allSettled(chans.map(ch => shortEpg(ch.stream_id)));
+    rows = chans.map((ch, i) => ({ch, list: rs[i].status === "fulfilled" ? rs[i].value : []}));
+  }
+  if (S.gtok !== tok) return;
+  const now = Date.now(), start = Math.floor(now / 1800e3) * 1800e3, span = 360, end = start + span * 60e3, W = span * PXM;
+  const t = ms => new Date(ms).toLocaleTimeString("pt-BR", {hour: "2-digit", minute: "2-digit"});
+  let ticks = ""; for (let i = 0; i < span / 30; i++) ticks += `<span style="left:${i * 30 * PXM}px">${t(start + i * 1800e3)}</span>`;
+  const body = rows.map(({ch, list}) => {
+    const cells = list.filter(p => p.end > start && p.start < end).map(p => {
+      const l = Math.max(0, (p.start - start) / 60e3 * PXM), w = Math.max(30, (Math.min(p.end, end) - Math.max(p.start, start)) / 60e3 * PXM - 2);
+      return `<button class="gp${p.start <= now && p.end > now ? " now" : ""}" data-id="${esc(ch.stream_id)}" style="left:${l}px;width:${w}px">${esc(p.title)}<small>${t(p.start)} - ${t(p.end)}</small></button>`;
+    }).join("");
+    const ls = ch.stream_icon || logoFor(ch.name);
+    return `<div class="grow"><button class="gch" data-id="${esc(ch.stream_id)}"><span class="lg"><i>${esc(ini(ch.name))}</i>${ls ? `<img src="${esc(ls)}" alt="" loading="lazy" referrerpolicy="no-referrer" onload="this.style.opacity=1" onerror="this.remove()">` : ""}</span><span>${esc(ch.name)}</span></button><div class="gtl" style="width:${W}px">${cells || `<span class="gp none" style="left:0;width:${W - 4}px">Sem programação</span>`}</div></div>`;
+  }).join("");
+  $("gbody").innerHTML = `<div class="gin" style="width:${W + 170}px"><div class="ghead"><div class="gch"></div><div class="gtl" style="width:${W}px">${ticks}</div></div>${body}<div class="gnow" style="left:${(now - start) / 60e3 * PXM + 170}px"></div></div>`;
+  $("gmsg").textContent = aviso ? "O arquivo XMLTV falhou (" + aviso + "). Mostrando a programação curta do servidor." : (rows.length ? "" : "Nenhum canal nesta categoria.");
+}
+$("gbody").onclick = e => {
+  const b = e.target.closest("[data-id]"); if (!b) return;
+  const it = S.D.live.byId.get(b.dataset.id); if (it) startLive(it, true);
+};
+
+/* ---------- detalhes de filmes e séries ---------- */
+function infoHtml(it, inf) {
+  const img = inf.movie_image || inf.cover || it.cover || it.stream_icon || "";
+  const bd = Array.isArray(inf.backdrop_path) ? inf.backdrop_path[0] : inf.backdrop_path;
+  const year = String(inf.releasedate || inf.releaseDate || inf.release_date || it.year || "").slice(0, 4);
+  const rt = inf.rating || it.rating || "";
+  const meta = [year, inf.genre, inf.duration || (inf.episode_run_time ? inf.episode_run_time + " min" : "")].filter(Boolean).join(" • ");
+  const plot = inf.plot || inf.description || "";
+  return `<div class="dt">${typeof bd === "string" && bd ? `<img class="dbd" src="${esc(bd)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ""}
+    <div class="dh">${img ? `<img class="dp" src="${esc(img)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ""}
+    <div class="di"><b class="dn">${esc(it.name)}</b>${rt && Number(rt) !== 0 ? `<span class="dr">★ ${esc(rt)}</span>` : ""}<span class="dm">${esc(meta)}</span></div></div>
+    ${plot ? `<p class="dpl">${esc(plot)}</p>` : ""}
+    ${inf.cast ? `<p class="dx"><b>Elenco:</b> ${esc(inf.cast)}</p>` : ""}${inf.director ? `<p class="dx"><b>Direção:</b> ${esc(inf.director)}</p>` : ""}</div>`;
+}
+async function showDetails(it) {
+  if (!it) return;
+  if (S.mode === "series") return episodes(String(it.series_id), it.name, cred(), it);
+  const id = String(it[CFG[S.mode].id]), tok = S.dtok = {};
+  if (!S.view) S.keep = {n: PG.n, y: $("list").scrollTop};
+  S.view = "det"; S.ep = null; $("tools").classList.add("hidden"); $("list").classList.remove("pgrid");
+  const back = `<button class="ch" data-back="1"><span>‹ Voltar</span></button>`;
+  $("list").innerHTML = back + skelDet();
+  let inf = {}, ext = it.container_extension || "mp4";
+  try {
+    const d = await api("&action=get_vod_info&vod_id=" + encodeURIComponent(id));
+    inf = (d && d.info) || {}; ext = (d && d.movie_data && d.movie_data.container_extension) || ext;
+  } catch (e) {}
+  if (S.dtok !== tok || S.view !== "det") return;
+  S.det = {it, id, ext, img: inf.movie_image || it.stream_icon || ""};
+  const rec = POS[S.base + "|vod:" + id], cont = rec && rec.t > 5 && (!rec.d || rec.t < rec.d - 30), seen = SEEN[S.base + "|vod:" + id];
+  $("list").innerHTML = back + infoHtml(it, inf) +
+    `<div class="dact"><button class="btn" id="dgo">${cont ? "▶ Continuar de " + fmt(rec.t) : seen ? "▶ Assistir de novo" : "▶ Assistir"}</button><button class="out" id="dfav">${isFav(id) ? "★ Favorito" : "☆ Favoritar"}</button></div>`;
+}
+function playDet() {
+  const D = S.det; if (!D) return;
+  S.direct = false; S.recon = 0; S.cur = D.id; addRec(D.id);
+  S.nextMeta = {k: "vod", id: D.id, ext: D.ext, n: D.it.name, img: D.img};
+  ["plogo", "mlogo"].forEach(id => { const el = $(id); el.style.display = D.img ? "" : "none"; if (D.img) el.src = D.img; });
+  play(`${S.base}/movie/${cred()}/${D.id}.${D.ext}`, D.it.name, false, "vod:" + D.id);
+}
+function toggleFavDet() {
+  const id = S.det ? S.det.id : (S.ep ? S.ep.id : null); if (id == null) return;
+  toggleFav(id);
+  const b = $("dfav"); if (b) b.textContent = isFav(id) ? "★ Favorito" : "☆ Favoritar";
+}
+$("vtog").onclick = () => {
+  VIEW[S.mode] = (VIEW[S.mode] || "grid") === "grid" ? "list" : "grid";
+  try { localStorage.setItem("iptv_view", JSON.stringify(VIEW)); } catch (_) {}
+  render();
+};
+
+/* ---------- backup ---------- */
+const bkMsg = t => { $("err").textContent = t; };
+const safeKey = k => !["__proto__", "constructor", "prototype"].includes(k);
+const backupData = () => ({app: "player-iptv", v: 1, at: Date.now(), servers, FAV, REC, POS, SEEN});
+function importBackup(txt) {
+  let d; try { d = JSON.parse(txt); } catch (_) { return bkMsg("Backup inválido."); }
+  if (!d || d.app !== "player-iptv") return bkMsg("Esse arquivo não é um backup do TelaPlay.");
+  let n = 0;
+  (Array.isArray(d.servers) ? d.servers : []).forEach(s => {
+    if (s && typeof s.dns === "string" && typeof s.usr === "string" && typeof s.pwd === "string" && !servers.some(x => x.dns === s.dns && x.usr === s.usr)) {
+      servers.push({name: String(s.name || "Servidor").slice(0, 60), dns: s.dns.slice(0, 200), usr: s.usr.slice(0, 100), pwd: s.pwd.slice(0, 100), epg: typeof s.epg === "string" ? s.epg.slice(0, 300) : ""}); n++;
+    }
+  });
+  [[d.FAV, FAV], [d.REC, REC]].forEach(([src, dst]) => Object.entries(src && typeof src === "object" ? src : {}).forEach(([k, a]) => {
+    if (!safeKey(k) || !Array.isArray(a)) return;
+    dst[k] = [...new Set([...(dst[k] || []), ...a.map(String)])].slice(0, 300);
+  }));
+  Object.entries(d.POS && typeof d.POS === "object" ? d.POS : {}).forEach(([k, v]) => {
+    if (safeKey(k) && v && typeof v.t === "number" && (!POS[k] || (v.u || 0) > (POS[k].u || 0))) POS[k] = v;
+  });
+  Object.entries(d.SEEN && typeof d.SEEN === "object" ? d.SEEN : {}).forEach(([k, v]) => { if (safeKey(k)) SEEN[k] = Number(v) || 1; });
+  persist(); persistPos(); persistSeen();
+  try { localStorage.setItem("iptv_fav", JSON.stringify(FAV)); localStorage.setItem("iptv_rec", JSON.stringify(REC)); } catch (_) {}
+  renderServers(); bkMsg("Backup importado" + (n ? " (" + n + " servidor(es) novo(s))." : "."));
+}
+$("bkexp").onclick = () => {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(backupData())], {type: "application/json"}));
+  a.download = "telaplay-backup.json"; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 3000); bkMsg("Arquivo de backup gerado.");
+};
+$("bkcopy").onclick = async () => {
+  const t = JSON.stringify(backupData());
+  try { await navigator.clipboard.writeText(t); bkMsg("Backup copiado. Em outro aparelho, cole em \"Importar do texto\"."); }
+  catch (_) { $("bktxt").value = t; bkMsg("Copie o texto da caixa abaixo."); }
+};
+$("bkimp").onclick = () => $("bkfile").click();
+$("bkfile").onchange = async e => { const f = e.target.files[0]; if (f) importBackup(await f.text()); e.target.value = ""; };
+$("bkpaste").onclick = () => importBackup($("bktxt").value);
+
+/* ---------- opções do player ---------- */
+const optBtn = (a, v, label, on) => `<button class="opt${on ? " on" : ""}" data-a="${a}" data-v="${esc(v)}"><span>${esc(label)}</span><span>${on ? "✓" : ""}</span></button>`;
+function optMenu() {
+  const v = $("v"), vod = S.mode !== "live";
+  let h = "";
+  if (vod) h += `<div class="og">Velocidade</div>` + [0.5, 0.75, 1, 1.25, 1.5, 2].map(x => optBtn("speed", x, x + "x", v.playbackRate === x)).join("");
+  if (hls && hls.levels && hls.levels.length > 1)
+    h += `<div class="og">Qualidade</div>` + optBtn("q", -1, "Automática", hls.autoLevelEnabled) +
+      hls.levels.map((l, i) => optBtn("q", i, l.height ? l.height + "p" : Math.round((l.bitrate || 0) / 1000) + " kbps", !hls.autoLevelEnabled && hls.currentLevel === i)).join("");
+  const at = hls && hls.audioTracks && hls.audioTracks.length > 1 ? hls.audioTracks.map((t, i) => [i, t.name || t.lang || "Faixa " + (i + 1), hls.audioTrack === i])
+    : v.audioTracks && v.audioTracks.length > 1 ? [...v.audioTracks].map((t, i) => [i, t.label || t.language || "Faixa " + (i + 1), t.enabled]) : [];
+  if (at.length) h += `<div class="og">Áudio</div>` + at.map(([i, n, on]) => optBtn("aud", i, n, on)).join("");
+  let st = null;
+  if (hls && hls.subtitleTracks && hls.subtitleTracks.length) st = {off: hls.subtitleTrack === -1, l: hls.subtitleTracks.map((t, i) => [i, t.name || t.lang || "Legenda " + (i + 1), hls.subtitleTrack === i])};
+  else {
+    const l = [...v.textTracks].map((t, i) => [i, t.label || t.language || "Legenda " + (i + 1), t.mode === "showing", t.kind]).filter(x => x[3] === "subtitles" || x[3] === "captions");
+    if (l.length) st = {off: !l.some(x => x[2]), l};
+  }
+  if (st) h += `<div class="og">Legendas</div>` + optBtn("sub", -1, "Desativadas", st.off) + st.l.map(([i, n, on]) => optBtn("sub", i, n, on)).join("");
+  if (document.pictureInPictureEnabled && !v.disablePictureInPicture)
+    h += `<div class="og">Janela</div>` + optBtn("pip", 1, document.pictureInPictureElement ? "Sair do Picture-in-Picture" : "Picture-in-Picture", false);
+  h += `<div class="og">Temporizador para dormir</div>` + [[0, "Desligado"], [15, "15 min"], [30, "30 min"], [45, "45 min"], [60, "1 hora"], [90, "1 h 30"]].map(([m, l]) => optBtn("sleep", m, l, (S.sleepMin || 0) === m)).join("");
+  return h;
+}
+$("popt").onclick = () => {
+  const m = $("optmenu"), open = !m.classList.contains("hidden");
+  $("aspmenu").classList.add("hidden");
+  if (open) m.classList.add("hidden"); else { m.innerHTML = optMenu(); m.classList.remove("hidden"); }
+};
+$("optmenu").onclick = e => {
+  const b = e.target.closest(".opt"); if (!b) return;
+  const a = b.dataset.a, x = Number(b.dataset.v), v = $("v");
+  if (a === "speed") { v.playbackRate = x; toast(x + "x"); }
+  else if (a === "q" && hls) { hls.currentLevel = x; toast(x < 0 ? "Qualidade automática" : (hls.levels[x].height || "") + "p"); }
+  else if (a === "aud") {
+    if (hls && hls.audioTracks && hls.audioTracks.length > 1) hls.audioTrack = x;
+    else if (v.audioTracks) [...v.audioTracks].forEach((t, i) => { t.enabled = i === x; });
+  } else if (a === "sub") {
+    if (hls && hls.subtitleTracks && hls.subtitleTracks.length) hls.subtitleTrack = x;
+    else [...v.textTracks].forEach((t, i) => { if (t.kind === "subtitles" || t.kind === "captions") t.mode = i === x ? "showing" : "disabled"; });
+  } else if (a === "pip") {
+    if (document.pictureInPictureElement) document.exitPictureInPicture().catch(() => {});
+    else v.requestPictureInPicture().catch(() => toast("Picture-in-Picture indisponível"));
+  } else if (a === "sleep") setSleep(x);
+  $("optmenu").classList.add("hidden");
+};
+let sleepT = null;
+function setSleep(min) {
+  clearTimeout(sleepT); S.sleepMin = min;
+  if (min > 0) { sleepT = setTimeout(() => { $("v").pause(); S.sleepMin = 0; toast("Temporizador: reprodução pausada"); }, min * 60000); toast("Pausa em " + min + " min"); }
+  else toast("Temporizador desligado");
+}
+function skip(d) {
+  const v = $("v");
+  if (S.mode === "live" || !isFinite(v.duration)) return;
+  v.currentTime = Math.max(0, Math.min(v.duration - 1, v.currentTime + d));
+  toast((d > 0 ? "+" : "") + d + "s");
+}
+$("prew").onclick = () => skip(-10);
+$("pfwd").onclick = () => skip(10);
+
+/* ---------- reconexão automática (canal parado) ---------- */
+let wdT = -1, wdN = 0;
+function watchdog() {
+  const v = $("v");
+  if (S.mode !== "live" || $("player").classList.contains("hidden") || v.paused || !S.played) { wdN = 0; return; }
+  if (v.currentTime === wdT) {
+    if (++wdN >= 4) {
+      wdN = 0;
+      if ((S.recon = (S.recon || 0) + 1) <= 8) { $("msg").textContent = "Sem sinal. Reconectando..."; play(S.last, S.title, true); }
+      else fail("o canal parou de responder");
+    }
+  } else { wdN = 0; wdT = v.currentTime; }
+}
+setInterval(watchdog, 5000);
+
+/* ---------- botão voltar e controle remoto ---------- */
+const vis = id => !$(id).classList.contains("hidden");
+function handleBack() {
+  if (["aspmenu", "optmenu"].some(vis)) { $("aspmenu").classList.add("hidden"); $("optmenu").classList.add("hidden"); return true; }
+  if (vis("player")) { if (document.body.classList.contains("drawer") || S.direct) leavePlayer(); else setDrawer(true); return true; }
+  if (vis("app")) { if (S.view) backToList(); else { leavePlayer(); show("home"); } return true; }
+  if (vis("search") || vis("guide") || vis("cfg")) { show("home"); return true; }
+  if (vis("login") && S.in) { show("home"); return true; }
+  return false;
+}
+let kbd = false;
+addEventListener("keydown", () => { kbd = true; }, true);
+addEventListener("pointerdown", () => { kbd = false; }, true);
+const NAVSEL = "button,input,select,textarea,summary,[tabindex='0']";
+function navRoots() {
+  const dr = document.body.classList.contains("drawer");
+  if (vis("player") && !dr) return [$("ctl")];
+  if (dr && vis("app")) return [$("app"), $("vbox")];
+  for (const id of ["login", "home", "app", "search", "guide", "cfg"]) if (vis(id)) return [$(id)];
+  return [document.body];
+}
+function autoFocus() {
+  if (!kbd) return;
+  setTimeout(() => {
+    const el = navRoots()[0].querySelector(".cat.on, .hit, .srv .go, #add:not(.hidden), #sq, #gcat");
+    if (el) el.focus();
+  }, 60);
+}
+function spatial(dir, roots) {
+  const els = roots.flatMap(r => [...r.querySelectorAll(NAVSEL)]).filter(el => !el.disabled && el.getClientRects().length && getComputedStyle(el).visibility !== "hidden");
+  const cur = els.includes(document.activeElement) ? document.activeElement : null;
+  if (!cur) { if (els[0]) els[0].focus(); return !!els[0]; }
+  const r = cur.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2, horiz = dir === "ArrowLeft" || dir === "ArrowRight";
+  let best = null, bs = Infinity;
+  for (const el of els) {
+    if (el === cur) continue;
+    const q = el.getBoundingClientRect(), dx = q.left + q.width / 2 - cx, dy = q.top + q.height / 2 - cy;
+    const ok = dir === "ArrowRight" ? dx > 4 : dir === "ArrowLeft" ? dx < -4 : dir === "ArrowDown" ? dy > 4 : dy < -4;
+    if (!ok) continue;
+    const sc = (horiz ? Math.abs(dx) : Math.abs(dy)) + (horiz ? Math.abs(dy) : Math.abs(dx)) * 2.5;
+    if (sc < bs) { bs = sc; best = el; }
+  }
+  if (best) { best.focus(); best.scrollIntoView({block: "nearest", inline: "nearest"}); }
+  return !!best;
+}
+$("vbox").tabIndex = 0;
+$("vbox").addEventListener("keydown", e => { if (e.key === "Enter" && document.body.classList.contains("drawer")) setDrawer(false); });
+addEventListener("keydown", e => {
+  if (e.ctrlKey || e.altKey || e.metaKey) return;
+  const k = e.key, tag = e.target.tagName || "", typing = /^(INPUT|TEXTAREA)$/.test(tag) && !["range", "button", "checkbox", "file"].includes(e.target.type);
+  if (k === "Escape" || k === "GoBack" || (k === "Backspace" && !typing && tag !== "SELECT")) { if (handleBack()) e.preventDefault(); return; }
+  if (!/^Arrow(Up|Down|Left|Right)$/.test(k) || tag === "SELECT") return;
+  if (typing && (k === "ArrowLeft" || k === "ArrowRight")) return;
+  if (e.target.id === "seek" && (k === "ArrowLeft" || k === "ArrowRight")) return;
+  if (vis("player") && !document.body.classList.contains("drawer")) {
+    if (!$("player").classList.contains("ui")) {
+      if (k === "ArrowLeft") skip(-10); else if (k === "ArrowRight") skip(10);
+      bump(); e.preventDefault(); return;
+    }
+    bump();
+  }
+  if (spatial(k, navRoots())) e.preventDefault();
+});
+try {
+  const A = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.App;
+  if (A && A.addListener) A.addListener("backButton", () => { if (!handleBack() && A.exitApp) A.exitApp(); });
+} catch (_) {}
+
+/* ---------- ajustes de tela ---------- */
+let UI = {theme: "dark", font: 1, tv: "auto"};
+try { Object.assign(UI, JSON.parse(localStorage.getItem("iptv_ui") || "{}")); } catch (_) {}
+const isTv = () => UI.tv === "on" || (UI.tv === "auto" && /Android TV|AndroidTV|GoogleTV|SMART-?TV|Tizen|Web0S|BRAVIA|AFTM|AFTT|AFTS|AFTB|HbbTV|CrKey/i.test(navigator.userAgent));
+function applyUi() {
+  const r = document.documentElement, tv = isTv();
+  r.dataset.theme = UI.theme === "light" ? "light" : "dark";
+  r.classList.toggle("tv", tv);
+  r.style.setProperty("--fs", String((Number(UI.font) || 1) * (tv ? 1.2 : 1)));
+  const m = document.querySelector('meta[name="theme-color"]');
+  if (m) m.setAttribute("content", UI.theme === "light" ? "#f3f5fb" : "#070a1e");
+  document.querySelectorAll("#cbody .seg").forEach(sg => sg.querySelectorAll("button").forEach(b => b.classList.toggle("on", String(UI[sg.dataset.k]) === b.dataset.v)));
+}
+$("cbody").onclick = async e => {
+  const b = e.target.closest(".seg button");
+  if (b) {
+    const k = b.parentElement.dataset.k; UI[k] = k === "font" ? Number(b.dataset.v) : b.dataset.v;
+    try { localStorage.setItem("iptv_ui", JSON.stringify(UI)); } catch (_) {}
+    return applyUi();
+  }
+  if (e.target.closest("#cclr")) {
+    await idbClear(); S.D = {}; S.cm = {}; homeUpd();
+    $("cmsg").textContent = "Cache das listas limpo. As listas serão baixadas de novo.";
+  } else if (e.target.closest("#chist") && confirm("Apagar o histórico (Visto por último), o Continuar assistindo e as marcas de assistido?")) {
+    [POS, SEEN, REC].forEach(o => Object.keys(o).forEach(k => delete o[k]));
+    persistPos(); persistSeen(); try { localStorage.setItem("iptv_rec", "{}"); } catch (_) {}
+    renderCont(); $("cmsg").textContent = "Histórico apagado.";
+  }
+};
+$("cfgbtn").onclick = () => { show("cfg"); applyUi(); $("cmsg").textContent = ""; };
+$("cback").onclick = () => show("home");
+applyUi();
+
+/* ---------- transmitir para a TV (Chromecast) ---------- */
+const castOk = () => !!window.isSecureContext && !window.Capacitor;
+let castReady = null;
+function onCastState(ev) {
+  if (ev.sessionState === cast.framework.SessionState.SESSION_ENDED && S.casting) {
+    S.casting = false; $("castbar").classList.add("hidden");
+    if (vis("player")) { if (S.mode !== "live" && S.castT) S.nextResume = S.castT; play(S.last, S.title, S.mode === "live", S.key); }
+  }
+}
+function loadCast() {
+  if (castReady) return castReady;
+  castReady = new Promise((res, rej) => {
+    window.__onGCastApiAvailable = ok => {
+      if (!ok) return rej(new Error("este navegador não oferece transmissão"));
+      try {
+        const ctx = cast.framework.CastContext.getInstance();
+        ctx.setOptions({receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID, autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED});
+        ctx.addEventListener(cast.framework.CastContextEventType.SESSION_STATE_CHANGED, onCastState);
+        res();
+      } catch (e) { rej(e); }
+    };
+    const sc = document.createElement("script");
+    sc.src = "https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1";
+    sc.onerror = () => rej(new Error("não consegui carregar o serviço de transmissão (sem internet?)"));
+    document.head.appendChild(sc);
+  }).catch(e => { castReady = null; throw e; });
+  return castReady;
+}
+function castType(url, live) {
+  if (live) return /\.ts(\?|$)/i.test(url) ? "video/mp2t" : "application/x-mpegURL";
+  const x = ((url.match(/\.([a-z0-9]+)(\?|$)/i) || [])[1] || "").toLowerCase();
+  return {mp4: "video/mp4", m4v: "video/mp4", mkv: "video/x-matroska", webm: "video/webm", m3u8: "application/x-mpegURL", ts: "video/mp2t"}[x] || "video/mp4";
+}
+async function castLoad(resumeAt) {
+  const sess = cast.framework.CastContext.getInstance().getCurrentSession();
+  if (!sess) throw new Error("sem sessão");
+  const live = S.mode === "live", info = new chrome.cast.media.MediaInfo(S.last, castType(S.last, live));
+  info.streamType = live ? chrome.cast.media.StreamType.LIVE : chrome.cast.media.StreamType.BUFFERED;
+  info.metadata = new chrome.cast.media.GenericMediaMetadata(); info.metadata.title = S.title || "";
+  const req = new chrome.cast.media.LoadRequest(info); req.autoplay = true;
+  if (!live && resumeAt > 0) req.currentTime = resumeAt;
+  await sess.loadMedia(req);
+  S.casting = true;
+  $("spin").classList.add("hidden");
+  $("castmsg").textContent = "Transmitindo para " + ((sess.getCastDevice() || {}).friendlyName || "a TV");
+  $("castbar").classList.remove("hidden");
+}
+async function startCast() {
+  const v = $("v");
+  if (!castOk()) {
+    if (v.webkitShowPlaybackTargetPicker) return v.webkitShowPlaybackTargetPicker();
+    return toast(window.Capacitor ? "Transmissão ainda não disponível no APK. Use o Chrome ou o Edge." : "A transmissão exige https. Abra o app pelo endereço https (versão instalável).");
+  }
+  try { await loadCast(); }
+  catch (e) {
+    if (v.remote && S.mode !== "live") return v.remote.prompt().catch(() => toast("Nenhum dispositivo encontrado"));
+    return toast("Transmissão indisponível: " + e.message);
+  }
+  if (S.casting) return toast("Já está transmitindo");
+  try { await cast.framework.CastContext.getInstance().requestSession(); }
+  catch (e) { if (e !== "cancel") toast("Não foi possível conectar à TV"); return; }
+  S.castT = v.currentTime || 0;
+  try { await castLoad(S.castT); stop(); }
+  catch (e) { toast("A TV recusou a transmissão" + (e && e.code ? " (" + e.code + ")" : "")); }
+}
+function endCast() {
+  if (!S.casting) return;
+  S.casting = false; $("castbar").classList.add("hidden");
+  try { cast.framework.CastContext.getInstance().endCurrentSession(true); } catch (_) {}
+}
+$("pcast").onclick = startCast;
+$("castpp").onclick = () => { try { new cast.framework.RemotePlayerController(new cast.framework.RemotePlayer()).playOrPause(); } catch (_) {} };
+$("castx").onclick = () => { try { cast.framework.CastContext.getInstance().endCurrentSession(true); } catch (_) {} };
+
+/* ---------- instalação como app (PWA) ---------- */
+let instEv = null;
+addEventListener("beforeinstallprompt", e => { e.preventDefault(); instEv = e; $("inst").classList.remove("hidden"); });
+addEventListener("appinstalled", () => { instEv = null; $("inst").classList.add("hidden"); });
+$("inst").onclick = async () => {
+  if (!instEv) return;
+  instEv.prompt();
+  try { await instEv.userChoice; } catch (_) {}
+  instEv = null; $("inst").classList.add("hidden");
+};
+if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol) && !window.Capacitor) {
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+
+/* ---------- início ---------- */
+load(); renderServers();
+let lastKey = ""; try { lastKey = localStorage.getItem("iptv_last") || ""; } catch (e) {}
+const last = servers.find(x => x.dns + "|" + x.usr === lastKey);
+if (last) enter(last);
+$("player").classList.add("hidden");
+</script>
+</body>
+</html>
